@@ -1,148 +1,148 @@
 # Webling Telegram Bot
 
-Ein Python-Tool, das täglich offene Anträge aus Webling abfragt und die wichtigsten Informationen in einen Telegram-Kanal postet.
+A Python tool that queries open applications from Webling daily and posts the most important information to a Telegram channel.
 
 ## Features
 
-- 🔍 Automatische Abfrage offener Anträge aus Webling
-- 📱 Posting der wichtigsten Daten (Vorname, Nachname, Rufname, ID) in Telegram
-- ⏰ Tägliche Ausführung am späten Nachmittag (17:00 UTC)
-- 🚀 GitHub Actions Integration für automatische Ausführung
+- 🔍 Automatic querying of open applications from Webling
+- 📱 Posting of key data (first name, last name, nickname, ID) to Telegram
+- ⏰ Daily execution in the late afternoon (17:00 UTC)
+- 🚀 GitHub Actions integration for automatic execution
 
 ## Installation
 
-### 1. Repository klonen
+### 1. Clone repository
 ```bash
 git clone <your-repo-url>
 cd webling-telegram-bot
 ```
 
-### 2. Poetry installieren (falls noch nicht vorhanden)
+### 2. Install Poetry (if not already installed)
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-### 3. Python-Abhängigkeiten installieren
+### 3. Install Python dependencies
 ```bash
 poetry install
 ```
 
-### 4. IDE-Setup (Optional)
+### 4. IDE Setup (Optional)
 
-Für bessere Entwicklungserfahrung mit Auto-Completion und Import-Auflösung:
+For better development experience with auto-completion and import resolution:
 
 ```bash
-# Automatisches IDE-Setup
+# Automatic IDE setup
 poetry run python setup_ide.py
 ```
 
-Oder manuell für VS Code:
-1. Öffne VS Code im Projektordner
-2. Drücke `Cmd+Shift+P` (Mac) oder `Ctrl+Shift+P` (Windows/Linux)
-3. Wähle "Python: Select Interpreter"
-4. Wähle den Interpreter aus `.venv/bin/python`
+Or manually for VS Code:
+1. Open VS Code in the project folder
+2. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
+3. Select "Python: Select Interpreter"
+4. Choose the interpreter from `.venv/bin/python`
 
-### 5. Umgebungsvariablen konfigurieren
+### 5. Configure environment variables
 
-Kopieren Sie `env.example` zu `.env` und füllen Sie die Werte aus:
+Copy `env.example` to `.env` and fill in the values:
 
 ```bash
 cp env.example .env
 ```
 
-#### Webling API Konfiguration
-- `WEBLING_API_KEY`: Ihr Webling API-Schlüssel
-- `WEBLING_BASE_URL`: Die Basis-URL Ihrer Webling-Instanz (z.B. `https://your-instance.webling.ch`)
+#### Webling API Configuration
+- `WEBLING_API_KEY`: Your Webling API key
+- `WEBLING_BASE_URL`: The base URL of your Webling instance (e.g., `https://your-instance.webling.ch`)
 
-#### Telegram Bot Konfiguration
-- `TELEGRAM_BOT_TOKEN`: Token Ihres Telegram-Bots (von @BotFather erhalten)
-- `TELEGRAM_CHAT_ID`: ID des Telegram-Kanals oder Chats
+#### Telegram Bot Configuration
+- `TELEGRAM_BOT_TOKEN`: Token of your Telegram bot (obtained from @BotFather)
+- `TELEGRAM_CHAT_ID`: ID of the Telegram channel or chat
 
 ## Telegram Bot Setup
 
-1. Erstellen Sie einen neuen Bot mit @BotFather auf Telegram
-2. Notieren Sie sich den Bot-Token
-3. Fügen Sie den Bot zu Ihrem Kanal hinzu (als Administrator)
-4. Ermitteln Sie die Chat-ID des Kanals
+1. Create a new bot with @BotFather on Telegram
+2. Note down the bot token
+3. Add the bot to your channel (as administrator)
+4. Determine the chat ID of the channel
 
-### Chat-ID ermitteln:
+### Get Chat ID:
 ```bash
 curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates"
 ```
 
 ## GitHub Actions Setup
 
-### 1. Repository Secrets konfigurieren
+### 1. Configure Repository Secrets
 
-Gehen Sie zu Ihrem GitHub Repository → Settings → Secrets and variables → Actions und fügen Sie folgende Secrets hinzu:
+Go to your GitHub repository → Settings → Secrets and variables → Actions and add the following secrets:
 
 - `WEBLING_API_KEY`
 - `WEBLING_BASE_URL`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 
-### 2. Workflow aktivieren
+### 2. Activate workflow
 
-Der Workflow ist bereits konfiguriert und läuft täglich um 17:00 UTC. Sie können ihn auch manuell über die GitHub Actions UI ausführen.
+The workflow is already configured and runs daily at 17:00 UTC. You can also run it manually via the GitHub Actions UI.
 
-## Lokale Ausführung
+## Local Execution
 
 ```bash
-# Mit Poetry
+# With Poetry
 poetry run python main.py
 
-# Oder direkt im Poetry-Shell
+# Or directly in Poetry shell
 poetry shell
 python main.py
 ```
 
-## Anpassungen
+## Customization
 
 ### Webling API Endpoints
 
-Passen Sie in `main.py` die folgenden Parameter an Ihre Webling-Konfiguration an:
+Adjust the following parameters in `main.py` to match your Webling configuration:
 
 ```python
-# Endpoint für offene Anträge
+# Endpoint for open applications
 url = f"{self.webling_base_url}/api/v1/members"
 
-# Filter für offene Anträge
+# Filter for open applications
 params = {
-    'filter': 'status:offen',  # Anpassen an Ihre Webling-Konfiguration
+    'filter': 'status:offen',  # Adjust to your Webling configuration
     'fields': 'id,vorname,nachname,rufname,status'
 }
 ```
 
-### Ausführungszeit ändern
+### Change execution time
 
-Bearbeiten Sie die Cron-Expression in `.github/workflows/daily-check.yml`:
+Edit the cron expression in `.github/workflows/daily-check.yml`:
 
 ```yaml
-- cron: '0 17 * * *'  # Täglich um 17:00 UTC
+- cron: '0 17 * * *'  # Daily at 17:00 UTC
 ```
 
 ## Logging
 
-Das Tool loggt alle Aktivitäten mit Zeitstempel. Bei GitHub Actions können Sie die Logs in der Actions-UI einsehen.
+The tool logs all activities with timestamps. For GitHub Actions, you can view the logs in the Actions UI.
 
-## Fehlerbehebung
+## Troubleshooting
 
-### Häufige Probleme
+### Common Issues
 
-1. **Webling API-Fehler**: Überprüfen Sie API-Schlüssel und URL
-2. **Telegram-Fehler**: Stellen Sie sicher, dass der Bot dem Kanal hinzugefügt wurde
-3. **Fehlende Umgebungsvariablen**: Überprüfen Sie alle erforderlichen Secrets
+1. **Webling API errors**: Check API key and URL
+2. **Telegram errors**: Make sure the bot has been added to the channel
+3. **Missing environment variables**: Check all required secrets
 
-### Debug-Modus
+### Debug mode
 
-Fügen Sie temporär mehr Logging hinzu:
+Add more logging temporarily:
 
 ```python
 logging.basicConfig(level=logging.DEBUG)
 ```
 
-## Lizenz
+## License
 
 WTFPL - Do What The Fuck You Want To Public License
 
-Siehe [COPYING](COPYING) für Details. 
+See [COPYING](COPYING) for details. 
