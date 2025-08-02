@@ -49,24 +49,24 @@ class WeblingTelegramBot:
         """Retrieves open applications from Webling"""
         try:
             headers = {
-                "Authorization": f"Bearer {self.webling_api_key}",
+                "apikey": self.webling_api_key,
                 "Content-Type": "application/json",
             }
 
-            url = f"{self.webling_base_url}/api/v1/members"
+            url = f"{self.webling_base_url}/api/1/member"
 
             params = {
-                "filter": "status:offen",
-                "fields": "id,vorname,nachname,rufname,status",
+                "filter": "$ancestors.$id=1023",
+                "format": "full",
             }
 
             response = requests.get(url, headers=headers, params=params)
+
             response.raise_for_status()
 
             data = response.json()
-            logger.info(f"Found open applications: {len(data.get('data', []))}")
-            result = data.get("data", [])
-            return result if isinstance(result, list) else []
+            logger.info(f"Found open applications: {len(data)}")
+            return data
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Error retrieving Webling data: {e}")
@@ -75,25 +75,29 @@ class WeblingTelegramBot:
     def format_telegram_message(self, applications: List[Dict[str, Any]]) -> str:
         """Formats the message for Telegram"""
         if not applications:
-            return "✅ No open applications found."
+            return ""
 
         message = f"📋 **Open Applications** ({len(applications)})\n\n"
 
         for app in applications:
-            vorname = app.get("vorname", "N/A")
-            nachname = app.get("nachname", "N/A")
-            rufname = app.get("rufname", "N/A")
-            app_id = app.get("id", "N/A")
+            properties = app.get("properties", {})
+            vorname = properties.get("Vorname", "N/A")
+            nachname = properties.get("Name", "N/A")
+            rufname = properties.get("Rufname", "N/A")
+            mitglieder_id = properties.get("Mitglieder ID", "N/A")
 
             message += f"👤 **{vorname} {nachname}**\n"
             message += f"   Nickname: {rufname}\n"
-            message += f"   ID: {app_id}\n\n"
+            message += f"   ID: {mitglieder_id}\n\n"
 
         message += f"🕐 Updated: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
         return message
 
     async def send_telegram_message(self, message: str) -> None:
         """Sends message to Telegram channel"""
+        if not message:
+            logger.info("No message to send")
+            return
         try:
             await self.bot.send_message(
                 chat_id=self._telegram_chat_id,
