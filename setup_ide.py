@@ -59,12 +59,12 @@ def setup_vscode():
     with open(vscode_dir / "settings.json", "w") as f:
         json.dump(settings, f, indent=4)
     
-    print("✅ VS Code Konfiguration erstellt!")
+    print("✅ VS Code configuration created!")
 
 
 def setup_pycharm():
-    """Erstellt PyCharm-Konfigurationsdatei"""
-    print("🔧 Erstelle PyCharm-Konfiguration...")
+    """Creates PyCharm configuration file"""
+    print("🔧 Creating PyCharm configuration...")
     
     env_path = get_poetry_env_path()
     python_path = f"{env_path}/bin/python"
@@ -77,7 +77,7 @@ def setup_pycharm():
 # 3. Interpreter: {python_path}
 # 4. Apply and OK
 #
-# Alternative: Poetry Plugin installieren
+# Alternative: Install Poetry Plugin
 # 1. File → Settings → Plugins
 # 2. Search for "Poetry"
 # 3. Install "Poetry" plugin
@@ -87,43 +87,43 @@ def setup_pycharm():
     with open(".pycharmrc", "w") as f:
         f.write(config)
     
-    print("✅ PyCharm-Konfiguration erstellt!")
+    print("✅ PyCharm configuration created!")
 
 
 def show_manual_steps():
-    """Zeigt manuelle Schritte für andere IDEs"""
+    """Shows manual steps for other IDEs"""
     env_path = get_poetry_env_path()
     python_path = f"{env_path}/bin/python"
     
-    print("\n📋 Manuelle Schritte für andere IDEs:")
-    print(f"Python-Interpreter: {python_path}")
-    print("\nFür Vim/Neovim:")
-    print("1. Installiere coc-pyright oder ALE")
-    print("2. Setze g:python3_host_prog auf den obigen Pfad")
-    print("\nFür Emacs:")
-    print("1. Installiere lsp-mode oder elpy")
-    print("2. Konfiguriere den Python-Interpreter-Pfad")
+    print("\n📋 Manual steps for other IDEs:")
+    print(f"Python Interpreter: {python_path}")
+    print("\nFor Vim/Neovim:")
+    print("1. Install coc-pyright or ALE")
+    print("2. Set g:python3_host_prog to the path above")
+    print("\nFor Emacs:")
+    print("1. Install lsp-mode or elpy")
+    print("2. Configure the Python interpreter path")
 
 
 def main():
-    """Hauptfunktion"""
+    """Main function"""
     print("🚀 Poetry IDE Setup")
     print("=" * 50)
     
-    # Prüfe ob Poetry installiert ist
+    # Check if Poetry is installed
     if not run_command("poetry --version"):
-        print("❌ Poetry ist nicht installiert!")
-        print("Installiere Poetry mit: curl -sSL https://install.python-poetry.org | python3 -")
+        print("❌ Poetry is not installed!")
+        print("Install Poetry with: curl -sSL https://install.python-poetry.org | python3 -")
         sys.exit(1)
     
-    # Prüfe ob wir in einem Poetry-Projekt sind
+    # Check if we're in a Poetry project
     if not Path("pyproject.toml").exists():
-        print("❌ Kein Poetry-Projekt gefunden!")
-        print("Führe 'poetry init' aus, um ein neues Projekt zu erstellen.")
+        print("❌ No Poetry project found!")
+        print("Run 'poetry init' to create a new project.")
         sys.exit(1)
     
-    # Installiere Dependencies
-    print("📦 Installiere Dependencies...")
+    # Install dependencies
+    print("📦 Installing dependencies...")
     run_command("poetry install")
     
     # Setup IDEs
@@ -131,11 +131,11 @@ def main():
     setup_pycharm()
     show_manual_steps()
     
-    print("\n🎉 Setup abgeschlossen!")
-    print("\nNächste Schritte:")
-    print("1. Starte deine IDE neu")
-    print("2. Wähle den Python-Interpreter aus der Poetry-Umgebung")
-    print("3. Die Imports sollten jetzt funktionieren!")
+    print("\n🎉 Setup completed!")
+    print("\nNext steps:")
+    print("1. Restart your IDE")
+    print("2. Select the Python interpreter from the Poetry environment")
+    print("3. The imports should now work!")
 
 
 if __name__ == "__main__":

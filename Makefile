@@ -15,11 +15,11 @@ help:
 install:
 	poetry install
 
-# Bot ausführen
+# Run bot
 run:
 	poetry run python main.py
 
-# Tests ausführen
+# Run tests
 test:
 	poetry run pytest
 
@@ -33,7 +33,7 @@ lint:
 	poetry run flake8 .
 	poetry run mypy .
 
-# Cache aufräumen
+# Clean cache
 clean:
 	poetry cache clear . --all
 	find . -type d -name "__pycache__" -exec rm -rf {} +
@@ -47,12 +47,12 @@ shell:
 update:
 	poetry update
 
-# Neue Dependency hinzufügen
+# Add new dependency
 add:
 	@read -p "Package name: " package; \
 	poetry add $$package
 
-# Dev Dependency hinzufügen
+# Add dev dependency
 add-dev:
 	@read -p "Package name: " package; \
 	poetry add --group dev $$package 

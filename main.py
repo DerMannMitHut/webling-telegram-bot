@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Webling Telegram Bot
-Abfragt offene Anträge aus Webling und postet sie in einen Telegram-Kanal
+Queries open applications from Webling and posts them to a Telegram channel
 """
 
 import asyncio
@@ -14,10 +14,10 @@ import requests
 from dotenv import load_dotenv
 from telegram import Bot
 
-# Lade Umgebungsvariablen
+# Load environment variables
 load_dotenv()
 
-# Logging konfigurieren
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -40,30 +40,30 @@ class WeblingTelegramBot:
                 self.telegram_chat_id,
             ]
         ):
-            raise ValueError("Alle erforderlichen Umgebungsvariablen müssen gesetzt sein")
+            raise ValueError("All required environment variables must be set")
 
-        # Type assertion nach der Validierung
+        # Type assertion after validation
         assert self.telegram_bot_token is not None
         assert self.telegram_chat_id is not None
         self.bot: Bot = Bot(token=self.telegram_bot_token)
-        # Type narrowing für mypy
+        # Type narrowing for mypy
         self._telegram_chat_id: str = self.telegram_chat_id
 
     def get_open_applications(self) -> List[Dict[str, Any]]:
-        """Holt offene Anträge aus Webling"""
+        """Retrieves open applications from Webling"""
         try:
             headers = {
                 "Authorization": f"Bearer {self.webling_api_key}",
                 "Content-Type": "application/json",
             }
 
-            # Endpoint für offene Anträge
-            # (muss an Ihre Webling-API angepasst werden)
+            # Endpoint for open applications
+            # (must be adapted to your Webling API)
             url = f"{self.webling_base_url}/api/v1/members"
 
-            # Filter für offene Anträge
+            # Filter for open applications
             params = {
-                # Anpassen an Ihre Webling-Konfiguration
+                # Adapt to your Webling configuration
                 "filter": "status:offen",
                 "fields": "id,vorname,nachname,rufname,status",
             }
@@ -72,20 +72,20 @@ class WeblingTelegramBot:
             response.raise_for_status()
 
             data = response.json()
-            logger.info(f"Gefundene offene Anträge: {len(data.get('data', []))}")
+            logger.info(f"Found open applications: {len(data.get('data', []))}")
             result = data.get("data", [])
             return result if isinstance(result, list) else []
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Fehler beim Abrufen der Webling-Daten: {e}")
+            logger.error(f"Error retrieving Webling data: {e}")
             return []
 
     def format_telegram_message(self, applications: List[Dict[str, Any]]) -> str:
-        """Formatiert die Nachricht für Telegram"""
+        """Formats the message for Telegram"""
         if not applications:
-            return "✅ Keine offenen Anträge gefunden."
+            return "✅ No open applications found."
 
-        message = f"📋 **Offene Anträge** ({len(applications)})\n\n"
+        message = f"📋 **Open Applications** ({len(applications)})\n\n"
 
         for app in applications:
             vorname = app.get("vorname", "N/A")
@@ -94,48 +94,48 @@ class WeblingTelegramBot:
             app_id = app.get("id", "N/A")
 
             message += f"👤 **{vorname} {nachname}**\n"
-            message += f"   Rufname: {rufname}\n"
+            message += f"   Nickname: {rufname}\n"
             message += f"   ID: {app_id}\n\n"
 
-        message += f"🕐 Aktualisiert: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
+        message += f"🕐 Updated: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
         return message
 
     async def send_telegram_message(self, message: str) -> None:
-        """Sendet Nachricht an Telegram-Kanal"""
+        """Sends message to Telegram channel"""
         try:
-            # Type assertion bereits in __init__ gemacht
+            # Type assertion already done in __init__
             await self.bot.send_message(
                 chat_id=self._telegram_chat_id,
                 text=message,
                 parse_mode="Markdown",
             )
-            logger.info("Nachricht erfolgreich an Telegram gesendet")
+            logger.info("Message successfully sent to Telegram")
         except Exception as e:
-            logger.error(f"Fehler beim Senden der Telegram-Nachricht: {e}")
+            logger.error(f"Error sending Telegram message: {e}")
 
     async def run_daily_check(self) -> None:
-        """Hauptfunktion für die tägliche Überprüfung"""
-        logger.info("Starte tägliche Überprüfung der offenen Anträge")
+        """Main function for daily check"""
+        logger.info("Starting daily check of open applications")
 
-        # Hole offene Anträge
+        # Get open applications
         applications = self.get_open_applications()
 
-        # Formatiere Nachricht
+        # Format message
         message = self.format_telegram_message(applications)
 
-        # Sende an Telegram
+        # Send to Telegram
         await self.send_telegram_message(message)
 
-        logger.info("Tägliche Überprüfung abgeschlossen")
+        logger.info("Daily check completed")
 
 
 async def main() -> None:
-    """Hauptfunktion"""
+    """Main function"""
     try:
         bot = WeblingTelegramBot()
         await bot.run_daily_check()
     except Exception as e:
-        logger.error(f"Fehler in der Hauptfunktion: {e}")
+        logger.error(f"Error in main function: {e}")
         raise
 
 

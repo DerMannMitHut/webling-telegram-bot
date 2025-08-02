@@ -13,16 +13,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def test_webling_connection():
-    """Testet die Verbindung zur Webling API"""
+    """Tests the connection to the Webling API"""
     
     webling_api_key = os.getenv('WEBLING_API_KEY')
     webling_base_url = os.getenv('WEBLING_BASE_URL')
     
     if not webling_api_key or not webling_base_url:
-        print("❌ Fehler: WEBLING_API_KEY oder WEBLING_BASE_URL nicht gesetzt")
+        print("❌ Error: WEBLING_API_KEY or WEBLING_BASE_URL not set")
         return False
     
-    print(f"🔗 Teste Verbindung zu: {webling_base_url}")
+    print(f"🔗 Testing connection to: {webling_base_url}")
     
     headers = {
         'Authorization': f'Bearer {webling_api_key}',
@@ -30,9 +30,9 @@ def test_webling_connection():
     }
     
     try:
-        # Teste Basis-Endpoint
+        # Test base endpoint
         url = f"{webling_base_url}/api/v1/members"
-        print(f"📡 Teste URL: {url}")
+        print(f"📡 Testing URL: {url}")
         
         response = requests.get(url, headers=headers, timeout=10)
         
@@ -40,40 +40,40 @@ def test_webling_connection():
         
         if response.status_code == 200:
             data = response.json()
-            print(f"✅ Verbindung erfolgreich!")
-            print(f"📋 Gefundene Einträge: {len(data.get('data', []))}")
+            print(f"✅ Connection successful!")
+            print(f"📋 Found entries: {len(data.get('data', []))}")
             
-            # Zeige erste paar Einträge
+            # Show first few entries
             if data.get('data'):
-                print("\n📝 Erste Einträge:")
+                print("\n📝 First entries:")
                 for i, entry in enumerate(data['data'][:3]):
                     print(f"  {i+1}. ID: {entry.get('id')}, Name: {entry.get('vorname', '')} {entry.get('nachname', '')}")
             
             return True
         else:
-            print(f"❌ Fehler: {response.status_code}")
+            print(f"❌ Error: {response.status_code}")
             print(f"📄 Response: {response.text}")
             return False
             
     except requests.exceptions.RequestException as e:
-        print(f"❌ Verbindungsfehler: {e}")
+        print(f"❌ Connection error: {e}")
         return False
 
 def test_telegram_connection():
-    """Testet die Telegram-Verbindung"""
+    """Tests the Telegram connection"""
     
     telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
     
     if not telegram_bot_token or not telegram_chat_id:
-        print("❌ Fehler: TELEGRAM_BOT_TOKEN oder TELEGRAM_CHAT_ID nicht gesetzt")
+        print("❌ Error: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set")
         return False
     
-    print(f"🤖 Teste Telegram Bot Token: {telegram_bot_token[:10]}...")
+    print(f"🤖 Testing Telegram Bot Token: {telegram_bot_token[:10]}...")
     print(f"💬 Chat ID: {telegram_chat_id}")
     
     try:
-        # Teste Bot-Informationen
+        # Test bot information
         url = f"https://api.telegram.org/bot{telegram_bot_token}/getMe"
         response = requests.get(url, timeout=10)
         
@@ -81,23 +81,23 @@ def test_telegram_connection():
             data = response.json()
             if data.get('ok'):
                 bot_info = data['result']
-                print(f"✅ Telegram Bot erfolgreich!")
+                print(f"✅ Telegram Bot successful!")
                 print(f"🤖 Bot Name: {bot_info.get('first_name')}")
                 print(f"📝 Username: @{bot_info.get('username')}")
                 return True
             else:
-                print(f"❌ Telegram API Fehler: {data.get('description')}")
+                print(f"❌ Telegram API Error: {data.get('description')}")
                 return False
         else:
-            print(f"❌ HTTP Fehler: {response.status_code}")
+            print(f"❌ HTTP Error: {response.status_code}")
             return False
             
     except requests.exceptions.RequestException as e:
-        print(f"❌ Verbindungsfehler: {e}")
+        print(f"❌ Connection error: {e}")
         return False
 
 if __name__ == "__main__":
-    print("🧪 Webling Telegram Bot - Verbindungstest\n")
+    print("🧪 Webling Telegram Bot - Connection Test\n")
     
     print("=== Webling API Test ===")
     webling_ok = test_webling_connection()
@@ -105,8 +105,8 @@ if __name__ == "__main__":
     print("\n=== Telegram Bot Test ===")
     telegram_ok = test_telegram_connection()
     
-    print("\n=== Zusammenfassung ===")
+    print("\n=== Summary ===")
     if webling_ok and telegram_ok:
-        print("✅ Alle Tests erfolgreich! Das Tool sollte funktionieren.")
+        print("✅ All tests successful! The tool should work.")
     else:
-        print("❌ Einige Tests fehlgeschlagen. Bitte überprüfen Sie die Konfiguration.") 
+        print("❌ Some tests failed. Please check the configuration.") 
