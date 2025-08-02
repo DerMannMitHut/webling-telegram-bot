@@ -14,10 +14,8 @@ import requests
 from dotenv import load_dotenv
 from telegram import Bot
 
-# Load environment variables
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -42,11 +40,9 @@ class WeblingTelegramBot:
         ):
             raise ValueError("All required environment variables must be set")
 
-        # Type assertion after validation
         assert self.telegram_bot_token is not None
         assert self.telegram_chat_id is not None
         self.bot: Bot = Bot(token=self.telegram_bot_token)
-        # Type narrowing for mypy
         self._telegram_chat_id: str = self.telegram_chat_id
 
     def get_open_applications(self) -> List[Dict[str, Any]]:
@@ -57,13 +53,9 @@ class WeblingTelegramBot:
                 "Content-Type": "application/json",
             }
 
-            # Endpoint for open applications
-            # (must be adapted to your Webling API)
             url = f"{self.webling_base_url}/api/v1/members"
 
-            # Filter for open applications
             params = {
-                # Adapt to your Webling configuration
                 "filter": "status:offen",
                 "fields": "id,vorname,nachname,rufname,status",
             }
@@ -103,7 +95,6 @@ class WeblingTelegramBot:
     async def send_telegram_message(self, message: str) -> None:
         """Sends message to Telegram channel"""
         try:
-            # Type assertion already done in __init__
             await self.bot.send_message(
                 chat_id=self._telegram_chat_id,
                 text=message,
@@ -117,13 +108,8 @@ class WeblingTelegramBot:
         """Main function for daily check"""
         logger.info("Starting daily check of open applications")
 
-        # Get open applications
         applications = self.get_open_applications()
-
-        # Format message
         message = self.format_telegram_message(applications)
-
-        # Send to Telegram
         await self.send_telegram_message(message)
 
         logger.info("Daily check completed")

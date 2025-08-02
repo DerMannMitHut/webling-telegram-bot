@@ -2,9 +2,8 @@ name: Daily Webling Check
 
 on:
   schedule:
-    # Runs daily at 17:00 UTC
     - cron: '0 17 * * *'
-  workflow_dispatch:  # Enables manual execution
+  workflow_dispatch:
 
 jobs:
   check-open-applications:

@@ -110,23 +110,19 @@ def main():
     print("🚀 Poetry IDE Setup")
     print("=" * 50)
     
-    # Check if Poetry is installed
     if not run_command("poetry --version"):
         print("❌ Poetry is not installed!")
         print("Install Poetry with: curl -sSL https://install.python-poetry.org | python3 -")
         sys.exit(1)
     
-    # Check if we're in a Poetry project
     if not Path("pyproject.toml").exists():
         print("❌ No Poetry project found!")
         print("Run 'poetry init' to create a new project.")
         sys.exit(1)
     
-    # Install dependencies
     print("📦 Installing dependencies...")
     run_command("poetry install")
     
-    # Setup IDEs
     setup_vscode()
     setup_pycharm()
     show_manual_steps()

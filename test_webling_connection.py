@@ -30,7 +30,6 @@ def test_webling_connection():
     }
     
     try:
-        # Test base endpoint
         url = f"{webling_base_url}/api/v1/members"
         print(f"📡 Testing URL: {url}")
         
@@ -43,7 +42,6 @@ def test_webling_connection():
             print(f"✅ Connection successful!")
             print(f"📋 Found entries: {len(data.get('data', []))}")
             
-            # Show first few entries
             if data.get('data'):
                 print("\n📝 First entries:")
                 for i, entry in enumerate(data['data'][:3]):
@@ -73,7 +71,6 @@ def test_telegram_connection():
     print(f"💬 Chat ID: {telegram_chat_id}")
     
     try:
-        # Test bot information
         url = f"https://api.telegram.org/bot{telegram_bot_token}/getMe"
         response = requests.get(url, timeout=10)
         
