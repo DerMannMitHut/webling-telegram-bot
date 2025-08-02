@@ -90,7 +90,8 @@ class WeblingTelegramBot:
             message += f"   Nickname: {rufname}\n"
             message += f"   ID: {mitglieder_id}\n\n"
 
-        message += f"🕐 Updated: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
+        message += f"🕐 Stand: {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
+        message += f"👉 {self.webling_base_url}/admin#/members/organigram"
         return message
 
     async def send_telegram_message(self, message: str) -> None:
