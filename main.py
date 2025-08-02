@@ -27,6 +27,7 @@ class WeblingTelegramBot:
     def __init__(self) -> None:
         self.webling_api_key: str | None = os.getenv("WEBLING_API_KEY")
         self.webling_base_url: str | None = os.getenv("WEBLING_BASE_URL")
+        self.webling_member_group: str | None = os.getenv("WEBLING_MEMBER_GROUP")
         self.telegram_bot_token: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
         self.telegram_chat_id: str | None = os.getenv("TELEGRAM_CHAT_ID")
 
@@ -36,6 +37,7 @@ class WeblingTelegramBot:
                 self.webling_base_url,
                 self.telegram_bot_token,
                 self.telegram_chat_id,
+                self.webling_member_group,
             ]
         ):
             raise ValueError("All required environment variables must be set")
@@ -56,7 +58,7 @@ class WeblingTelegramBot:
             url = f"{self.webling_base_url}/api/1/member"
 
             params = {
-                "filter": "$ancestors.$id=1023",
+                "filter": f"$ancestors.$id=-{self.webling_member_group}",
                 "format": "full",
             }
 
@@ -91,7 +93,7 @@ class WeblingTelegramBot:
             message += f"   ID: {mitglieder_id}\n\n"
 
         message += f"🕐 Stand: {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
-        message += f"👉 {self.webling_base_url}/admin#/members/organigram"
+        message += f"👉 {self.webling_base_url}/admin#/membergroup/{self.webling_member_group}"
         return message
 
     async def send_telegram_message(self, message: str) -> None:
