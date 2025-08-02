@@ -58,7 +58,7 @@ class WeblingTelegramBot:
             url = f"{self.webling_base_url}/api/1/member"
 
             params = {
-                "filter": f"$ancestors.$id=-{self.webling_member_group}",
+                "filter": f"$ancestors.$id={self.webling_member_group}",
                 "format": "full",
             }
 
