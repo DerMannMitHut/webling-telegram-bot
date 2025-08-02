@@ -77,7 +77,7 @@ class WeblingTelegramBot:
         if not applications:
             return ""
 
-        message = f"📋 **Open Applications** ({len(applications)})\n\n"
+        message = f"📋 **Offene Anträge** ({len(applications)})\n\n"
 
         for app in applications:
             properties = app.get("properties", {})
