@@ -2,8 +2,9 @@
 name = "webling-telegram-bot"
 version = "0.1.0"
 description = "Ein Telegram Bot, der offene Anträge aus Webling abfragt und in einen Telegram-Kanal postet"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["DerMannMitHut <your-email@example.com>"]
 readme = "README.md"
+license = "WTFPL"
 packages = []
 
 [tool.poetry.dependencies]

@@ -143,4 +143,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 ## Lizenz
 
-MIT License 
+WTFPL - Do What The Fuck You Want To Public License
+
+Siehe [COPYING](COPYING) für Details. 
