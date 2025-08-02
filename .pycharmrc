@@ -1,0 +1,13 @@
+# PyCharm Poetry Integration
+# 
+# In PyCharm:
+# 1. File → Settings → Project → Python Interpreter
+# 2. Add Interpreter → Existing Environment
+# 3. Interpreter: /Users/dom/Documents/Hobby/2025/webling-telegram-bot/.venv/bin/python
+# 4. Apply and OK
+#
+# Alternative: Poetry Plugin installieren
+# 1. File → Settings → Plugins
+# 2. Search for "Poetry"
+# 3. Install "Poetry" plugin
+# 4. Restart PyCharm
