@@ -53,6 +53,7 @@ cp env.example .env
 #### Webling API Configuration
 - `WEBLING_API_KEY`: Your Webling API key
 - `WEBLING_BASE_URL`: The base URL of your Webling instance (e.g., `https://your-instance.webling.ch`)
+- `WEBLING_MEMBER_GROUP`: The membergroup to monitor for new members
 
 #### Telegram Bot Configuration
 - `TELEGRAM_BOT_TOKEN`: Token of your Telegram bot (obtained from @BotFather)
