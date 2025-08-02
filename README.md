@@ -97,51 +97,6 @@ poetry shell
 python main.py
 ```
 
-## Customization
-
-### Webling API Endpoints
-
-Adjust the following parameters in `main.py` to match your Webling configuration:
-
-```python
-# Endpoint for open applications
-url = f"{self.webling_base_url}/api/v1/members"
-
-# Filter for open applications
-params = {
-    'filter': 'status:offen',  # Adjust to your Webling configuration
-    'fields': 'id,vorname,nachname,rufname,status'
-}
-```
-
-### Change execution time
-
-Edit the cron expression in `.github/workflows/daily-check.yml`:
-
-```yaml
-- cron: '0 17 * * *'  # Daily at 17:00 UTC
-```
-
-## Logging
-
-The tool logs all activities with timestamps. For GitHub Actions, you can view the logs in the Actions UI.
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Webling API errors**: Check API key and URL
-2. **Telegram errors**: Make sure the bot has been added to the channel
-3. **Missing environment variables**: Check all required secrets
-
-### Debug mode
-
-Add more logging temporarily:
-
-```python
-logging.basicConfig(level=logging.DEBUG)
-```
-
 ## License
 
 WTFPL - Do What The Fuck You Want To Public License
