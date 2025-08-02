@@ -2,7 +2,7 @@
 name = "webling-telegram-bot"
 version = "0.1.0"
 description = "Ein Telegram Bot, der offene Anträge aus Webling abfragt und in einen Telegram-Kanal postet"
-authors = ["DerMannMitHut <your-email@example.com>"]
+authors = ["DerMannMitHut <dom@metstuebchen.de>"]
 readme = "README.md"
 license = "WTFPL"
 packages = []
