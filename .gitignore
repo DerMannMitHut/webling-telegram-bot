@@ -48,5 +48,8 @@ Thumbs.db
 # Logs
 *.log
 
+# Secrets
+secrets.php
+
 # Poetry
 # poetry.lock  # Uncomment if you want to ignore the lock file
