@@ -53,7 +53,9 @@ cp env.example .env
 #### Webling API Configuration
 - `WEBLING_API_KEY`: Your Webling API key
 - `WEBLING_BASE_URL`: The base URL of your Webling instance (e.g., `https://your-instance.webling.ch`)
-- `WEBLING_MEMBER_GROUP`: The membergroup to monitor for new members
+- `WEBLING_MEMBER_GROUP_OPEN`: The member group to monitor for new members
+- `WEBLING_MEMBER_GROUP_ACCEPTED`: The member group for the accepted members
+- `WEBLING_MEMBER_GROUP_DECLINED`: The member group for the declined members
 
 #### Telegram Bot Configuration
 - `TELEGRAM_BOT_TOKEN`: Token of your Telegram bot (obtained from @BotFather)
@@ -78,8 +80,13 @@ curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates"
 Go to your GitHub repository → Settings → Secrets and variables → Actions and add the following secrets:
 
 - `WEBLING_API_KEY`
-- `WEBLING_BASE_URL`
 - `TELEGRAM_BOT_TOKEN`
+
+Add the following variables:
+- `WEBLING_BASE_URL`
+- `WEBLING_MEMBER_GROUP_OPEN`
+- `WEBLING_MEMBER_GROUP_ACCEPTED`
+- `WEBLING_MEMBER_GROUP_DECLINED`
 - `TELEGRAM_CHAT_ID`
 
 ### 2. Activate workflow

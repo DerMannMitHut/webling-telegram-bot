@@ -25,12 +25,12 @@ def test_webling_connection():
     print(f"🔗 Testing connection to: {webling_base_url}")
     
     headers = {
-        'Authorization': f'Bearer {webling_api_key}',
+        'apikey': webling_api_key,
         'Content-Type': 'application/json'
     }
     
     try:
-        url = f"{webling_base_url}/api/v1/members"
+        url = f"{webling_base_url}/api/1/member"
         print(f"📡 Testing URL: {url}")
         
         response = requests.get(url, headers=headers, timeout=10)
