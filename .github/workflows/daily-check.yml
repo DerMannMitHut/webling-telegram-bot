@@ -2,7 +2,7 @@ name: Daily Webling Check
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '30 15 * * *'
   workflow_dispatch:
 
 jobs:
