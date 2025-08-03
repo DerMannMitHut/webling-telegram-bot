@@ -42,6 +42,7 @@ $text = trim($update['message']['text']);
 
 function sendTelegramMessage($text) {
     global $chatId, $botToken;
+    echo "Telegram $chatId: \"$text\"\n";
     $url = "https://api.telegram.org/bot$botToken/sendMessage?chat_id=$chatId&text=" . urlencode($text);
 
     $ch = curl_init();
@@ -87,7 +88,7 @@ function pushMemberToDifferentGroup($memberId, $sourceGroupId, $targetGroupId): 
     $data = getFromWebling("member/{$memberId}");
 
     if (!isset($data['parents']) || !in_array($sourceGroupId, $data['parents'])) {
-        sendTelegramMessage("Member is not in expected source group (ID {$sourceGroupId}).\n");
+        sendTelegramMessage("Member is not in expected source group (ID {$sourceGroupId}).");
         return false;
     }
 
@@ -209,7 +210,6 @@ if (strpos($text, '/list') === 0) {
     $parts = explode(' ', $text);
     $ignoreEmpty = (count($parts) > 1);
     $applicationIds = getOpenApplicationIds();
-    echo json_encode($applicationIds), "\n";
     $applications = getMemberInfos($applicationIds);
     $message = formatTelegramMessage($applications, $ignoreEmpty);
     sendTelegramMessage($message);
