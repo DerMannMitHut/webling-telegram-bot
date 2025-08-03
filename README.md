@@ -1,111 +1,51 @@
-# Webling Telegram Bot
+# Webling Telegram Webhook
 
-A Python tool that queries open applications from Webling daily and posts the most important information to a Telegram channel.
+This project is designed to interact with both the Webling API and Telegram, allowing you to manage and automate communication with a Webling instance through Telegram. The project includes several PHP functions to send messages to Telegram and interact with Webling, and a GitHub Actions workflow for scheduled checks.
 
-## Features
+## Files
 
-- 🔍 Automatic querying of open applications from Webling
-- 📱 Posting of key data (first name, last name, nickname, ID) to Telegram
-- ⏰ Daily execution in the late afternoon (17:00 UTC)
-- 🚀 GitHub Actions integration for automatic execution
+- **.github/workflows/daily-check.yml**: A GitHub Actions workflow that schedules a daily check via a curl command. This workflow sends a POST request to the Telegram webhook endpoint (defined in `webhooks/telegram-webhook.php`) to retrieve a list of applications. It uses a cron schedule (`30 15 * * *`) and can be manually triggered.
 
-## Installation
+- **webhooks/telegram-webhook.php**: Contains multiple PHP functions for integration:
+  - `sendTelegramMessage($text)`: Sends a message to a Telegram chat using a predefined bot token and chat ID.
+  - `getFromWebling($apiRequest)`: Handles GET requests to the Webling API with provided API key and base URL, returning JSON-decoded results.
+  - `pushMemberToDifferentGroup($memberId, $sourceGroupId, $targetGroupId)`: Moves a member from one group to another in Webling, notifying via Telegram if the member is not in the expected source group.
+  - `getOpenApplicationIds()`: Retrieves a list of open application IDs from Webling based on the configured open group.
+  - `sendMemberMail(string $id)`: A stub for sending an email to a member (design to be implemented).
 
-### 1. Clone repository
-```bash
-git clone <your-repo-url>
-cd webling-telegram-bot
-```
+## Setup & Configuration
 
-### 2. Install Poetry (if not already installed)
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-```
+1. **Environment Variables**: Ensure you set the following variables in your configuration or environment:
+   - `TELEGRAM_CHAT_ID`: Telegram chat ID for receiving messages.
+   - `botToken`: Telegram bot token for sending messages.
+   - `weblingBaseUrl`: Base URL for Webling API requests.
+   - `weblingApiKey`: API key for authenticating with Webling.
+   - `openGroup`: Identifier for the group representing open applications.
 
-### 3. Install Python dependencies
-```bash
-poetry install
-```
+2. **GitHub Actions**: The workflow in `.github/workflows/daily-check.yml` runs daily (and can be manually triggered). Ensure that secrets/variables are properly set in your repository to support authenticated requests.
 
-### 4. IDE Setup (Optional)
+## Usage
 
-For better development experience with auto-completion and import resolution:
+- **Running the Webhook**: Deploy the PHP script (`webhooks/telegram-webhook.php`) on a web server supporting PHP to make these endpoints available.
+- **Automated Checks**: The GitHub Actions workflow automates checking for open applications. Modify the workflow or scripts as needed for additional functionality or to integrate logging/error handling.
 
-```bash
-# Automatic IDE setup
-poetry run python setup_ide.py
-```
+## Extending Functionality
 
-Or manually for VS Code:
-1. Open VS Code in the project folder
-2. Press `Cmd+Shift+P` (Mac) or `Ctrl+Shift+P` (Windows/Linux)
-3. Select "Python: Select Interpreter"
-4. Choose the interpreter from `.venv/bin/python`
+You can enhance the integration by implementing additional features. For example, the `sendMemberMail` function is currently a placeholder and can be implemented to handle email notifications.
 
-### 5. Configure environment variables
+## Troubleshooting
 
-Copy `env.example` to `.env` and fill in the values:
-
-```bash
-cp env.example .env
-```
-
-#### Webling API Configuration
-- `WEBLING_API_KEY`: Your Webling API key
-- `WEBLING_BASE_URL`: The base URL of your Webling instance (e.g., `https://your-instance.webling.ch`)
-- `WEBLING_MEMBER_GROUP_OPEN`: The member group to monitor for new members
-- `WEBLING_MEMBER_GROUP_ACCEPTED`: The member group for the accepted members
-- `WEBLING_MEMBER_GROUP_DECLINED`: The member group for the declined members
-
-#### Telegram Bot Configuration
-- `TELEGRAM_BOT_TOKEN`: Token of your Telegram bot (obtained from @BotFather)
-- `TELEGRAM_CHAT_ID`: ID of the Telegram channel or chat
-
-## Telegram Bot Setup
-
-1. Create a new bot with @BotFather on Telegram
-2. Note down the bot token
-3. Add the bot to your channel (as administrator)
-4. Determine the chat ID of the channel
-
-### Get Chat ID:
-```bash
-curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates"
-```
-
-## GitHub Actions Setup
-
-### 1. Configure Repository Secrets
-
-Go to your GitHub repository → Settings → Secrets and variables → Actions and add the following secrets:
-
-- `WEBLING_API_KEY`
-- `TELEGRAM_BOT_TOKEN`
-
-Add the following variables:
-- `WEBLING_BASE_URL`
-- `WEBLING_MEMBER_GROUP_OPEN`
-- `WEBLING_MEMBER_GROUP_ACCEPTED`
-- `WEBLING_MEMBER_GROUP_DECLINED`
-- `TELEGRAM_CHAT_ID`
-
-### 2. Activate workflow
-
-The workflow is already configured and runs daily at 17:00 UTC. You can also run it manually via the GitHub Actions UI.
-
-## Local Execution
-
-```bash
-# With Poetry
-poetry run python main.py
-
-# Or directly in Poetry shell
-poetry shell
-python main.py
-```
+- Ensure the API keys and tokens are accurate to avoid authentication issues.
+- Use logging within the PHP functions to trace errors from curl operations or HTTP requests.
+- Check server logs or GitHub Actions logs for additional insights in case of failures.
 
 ## License
 
-WTFPL - Do What The Fuck You Want To Public License
+This project is licensed under the terms described in the [COPYING](COPYING) file.
+## Contributing
 
-See [COPYING](COPYING) for details. 
+Contributions are welcome. Fork the repository, make your modifications, and submit a pull request.
+
+---
+
+This project focuses on automation and reliability, ensuring timely notifications and seamless integration between the Webling system and Telegram.
