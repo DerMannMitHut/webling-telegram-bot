@@ -27,8 +27,10 @@ jobs:
     - name: Run Webling check
       env:
         WEBLING_API_KEY: ${{ secrets.WEBLING_API_KEY }}
-        WEBLING_BASE_URL: ${{ secrets.WEBLING_BASE_URL }}
-        WEBLING_MEMBER_GROUP: ${{ secrets.WEBLING_MEMBER_GROUP }}
+        WEBLING_BASE_URL: ${{ vars.WEBLING_BASE_URL }}
+        WEBLING_MEMBER_GROUP_OPEN: ${{ vars.WEBLING_MEMBER_GROUP_OPEN }}
+        WEBLING_MEMBER_GROUP_ACCEPTED: ${{ vars.WEBLING_MEMBER_GROUP_ACCEPTED }}
+        WEBLING_MEMBER_GROUP_DECLINED: ${{ vars.WEBLING_MEMBER_GROUP_DECLINED }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
       run: poetry run python main.py 
