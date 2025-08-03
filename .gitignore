@@ -48,8 +48,8 @@ Thumbs.db
 # Logs
 *.log
 
-# Secrets
-secrets.php
+# config with secrets
+wh_config/
 
-# Poetry
-# poetry.lock  # Uncomment if you want to ignore the lock file
+# libs
+/webhooks/phpmailer/
