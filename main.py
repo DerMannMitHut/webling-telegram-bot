@@ -86,15 +86,15 @@ class WeblingTelegramBot:
         message = f"📋 **Offene Anträge** ({len(applications)})\n\n"
 
         for app in applications:
+            id = app.get("id", "N/A")
             properties = app.get("properties", {})
             vorname = properties.get("Vorname", "N/A")
             nachname = properties.get("Name", "N/A")
             rufname = properties.get("Rufname", "N/A")
-            mitglieder_id = properties.get("Mitglieder ID", "N/A")
 
             message += f"👤 **{vorname} {nachname}**\n"
             message += f"   Nickname: {rufname}\n"
-            message += f"   ID: {mitglieder_id}\n\n"
+            message += f"   ID: {id}\n\n"
 
         message += f"🕐 Stand: {datetime.now().strftime('%d.%m.%Y %H:%M')}\n"
         message += f"👉 {self.webling_base_url}/admin#/members/membergroup/{self.webling_group_open}"
