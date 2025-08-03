@@ -1,51 +1,83 @@
-# Webling Telegram Webhook
+# Webling Telegram Bot
 
-This project is designed to interact with both the Webling API and Telegram, allowing you to manage and automate communication with a Webling instance through Telegram. The project includes several PHP functions to send messages to Telegram and interact with Webling, and a GitHub Actions workflow for scheduled checks.
+This project provides a Telegram bot that integrates with the [Webling](https://www.webling.eu/) membership management system. The bot is written in PHP and designed to be run as a webhook handler, allowing you to receive and respond to Telegram messages or commands related to your Webling data.
 
-## Files
+## Features
 
-- **.github/workflows/daily-check.yml**: A GitHub Actions workflow that schedules a daily check via a curl command. This workflow sends a POST request to the Telegram webhook endpoint (defined in `webhooks/telegram-webhook.php`) to retrieve a list of applications. It uses a cron schedule (`30 15 * * *`) and can be manually triggered.
+- Connect your Telegram group or users with your Webling account
+- Query and manage membership information via Telegram
+- Optional email notifications using PHPMailer
 
-- **webhooks/telegram-webhook.php**: Contains multiple PHP functions for integration:
-  - `sendTelegramMessage($text)`: Sends a message to a Telegram chat using a predefined bot token and chat ID.
-  - `getFromWebling($apiRequest)`: Handles GET requests to the Webling API with provided API key and base URL, returning JSON-decoded results.
-  - `pushMemberToDifferentGroup($memberId, $sourceGroupId, $targetGroupId)`: Moves a member from one group to another in Webling, notifying via Telegram if the member is not in the expected source group.
-  - `getOpenApplicationIds()`: Retrieves a list of open application IDs from Webling based on the configured open group.
-  - `sendMemberMail(string $id)`: A stub for sending an email to a member (design to be implemented).
+## Requirements
 
-## Setup & Configuration
+- PHP 7.2 or higher
+- Composer (for PHPMailer, if email notifications are needed)
+- Web server (Apache, Nginx, etc.) with HTTPS
+- Telegram Bot Token ([see Telegram BotFather](https://core.telegram.org/bots#6-botfather))
+- Webling API credentials
 
-1. **Environment Variables**: Ensure you set the following variables in your configuration or environment:
-   - `TELEGRAM_CHAT_ID`: Telegram chat ID for receiving messages.
-   - `botToken`: Telegram bot token for sending messages.
-   - `weblingBaseUrl`: Base URL for Webling API requests.
-   - `weblingApiKey`: API key for authenticating with Webling.
-   - `openGroup`: Identifier for the group representing open applications.
+## Installation
 
-2. **GitHub Actions**: The workflow in `.github/workflows/daily-check.yml` runs daily (and can be manually triggered). Ensure that secrets/variables are properly set in your repository to support authenticated requests.
+1. **Clone the Repository**
+    ```bash
+    git clone https://github.com/DerMannMitHut/webling-telegram-bot.git
+    cd webling-telegram-bot
+    ```
+
+2. **Install PHPMailer (Optional, for Email)**
+    If you plan to use the bot's email notification features, run:
+    ```bash
+    ./install_phpmailer.sh
+    ```
+
+3. **Configure the Bot**
+
+    Copy `config.php` and update it with your credentials and desired settings:
+    ```php
+    <?php
+    $config = [
+        'telegram_token' => 'YOUR_TELEGRAM_BOT_TOKEN',
+        'webling_api_key' => 'YOUR_WEBLING_API_KEY',
+        'webling_url' => 'https://yourorg.webling.eu/api/1/',
+        // ... other settings
+    ];
+    ```
+
+4. **Set Up the Webhook**
+
+    Deploy `telegram-webhook.php` to your HTTPS-enabled web server and set the Telegram webhook to point to it:
+
+    ```bash
+    curl -F "url=https://yourdomain.com/path/to/telegram-webhook.php" \
+      "https://api.telegram.org/bot<YOUR_TELEGRAM_BOT_TOKEN>/setWebhook"
+    ```
+
+5. **Set Permissions**
+
+    Ensure the web server can read the configuration and write to any required directories (for logging, caching, etc.).
 
 ## Usage
 
-- **Running the Webhook**: Deploy the PHP script (`webhooks/telegram-webhook.php`) on a web server supporting PHP to make these endpoints available.
-- **Automated Checks**: The GitHub Actions workflow automates checking for open applications. Modify the workflow or scripts as needed for additional functionality or to integrate logging/error handling.
+- Interact with your Telegram bot in the configured group or directly in chat.
+- Supported commands and features depend on your bot’s configuration.
 
-## Extending Functionality
+## Customization
 
-You can enhance the integration by implementing additional features. For example, the `sendMemberMail` function is currently a placeholder and can be implemented to handle email notifications.
-
-## Troubleshooting
-
-- Ensure the API keys and tokens are accurate to avoid authentication issues.
-- Use logging within the PHP functions to trace errors from curl operations or HTTP requests.
-- Check server logs or GitHub Actions logs for additional insights in case of failures.
+- Adjust `config.php` for custom behaviors, permissions, and Webling access.
+- You may extend `telegram-webhook.php` to handle more commands or integrate other features.
 
 ## License
 
-This project is licensed under the terms described in the [COPYING](COPYING) file.
+See the `COPYING` file for license information.
+
 ## Contributing
 
-Contributions are welcome. Fork the repository, make your modifications, and submit a pull request.
+Pull requests and suggestions are welcome!
+
+## Disclaimer
+
+This project is not officially associated with Telegram or Webling. Use at your own risk.
 
 ---
 
-This project focuses on automation and reliability, ensuring timely notifications and seamless integration between the Webling system and Telegram.
+**For further questions, please open an issue in the GitHub repository.**
