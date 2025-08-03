@@ -247,7 +247,7 @@ if (strpos($text, '/list') === 0) {
     }
 } elseif (strpos($text, '/help') === 0) {
     sendTelegramMessage("Benutze /accept <ID> oder /decline <ID>, um neue"
-        . " Mitglieder anzunehmen oder abzulehnen und /list um die neuen Mitglieder"
+        . " Mitglieder anzunehmen oder abzulehnen und /list um die offenen Anträge"
         . " aufzulisten.");
 } else {
     sendTelegramMessage("Unknown command {$text}");
