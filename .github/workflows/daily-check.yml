@@ -15,6 +15,6 @@ jobs:
         curl -X POST https://xn--metstbchen-eeb.de/webhooks/telegram-webhook.php -H 'Content-Type: application/json' -d '{
         "message": {
         "chat": { "id": "${{ vars.TELEGRAM_CHAT_ID }}" },
-        "text": "/list"
+        "text": "/list quiet"
         }
         }'
