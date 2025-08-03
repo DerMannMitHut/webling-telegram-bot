@@ -1,23 +1,27 @@
 <?php
-$secrets = include(__DIR__ . '/../config/secrets.php');
+$secrets = include(__DIR__ . '/wh_config/secrets.php');
 $botToken = $secrets['TELEGRAM_BOT_TOKEN'];
 
-$content = file_get_contents("php://input");
+//$content = file_get_contents("php://input");
+$content = file_get_contents("php://stdin");
 $update = json_decode($content, true);
 
 if ($update === null) {
     // Invalid JSON received
     // TODO: Log invalid JSON for debugging
-    exit('ok');
+    exit('No content.');
 }
 
 if (!isset($update['message'])) {
     // TODO: Consider handling other update types or log ignored updates
-    exit('ok');
+    exit("No message in {$content}");
 }
 
 $chatId = $update['message']['chat']['id'];
 $text   = trim($update['message']['text']);
+
+print "Chat ID: {$chatId}\n";
+print "text   : {$text}\n";
 
 // TODO: Implement validation or authentication to verify webhook origin and prevent misuse
 
