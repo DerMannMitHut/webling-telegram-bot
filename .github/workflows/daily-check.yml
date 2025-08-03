@@ -14,12 +14,10 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Run curl command
-      env:
-        TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
       run: |
         curl -X POST https://xn--metstbchen-eeb.de/webhooks/telegram-webhook.php -H 'Content-Type: application/json' -d '{
         "message": {
-        "chat": { "id": "$TELEGRAM_CHAT_ID" },
+        "chat": { "id": "${{ vars.TELEGRAM_CHAT_ID }}" },
         "text": "/list"
         }
         }'
