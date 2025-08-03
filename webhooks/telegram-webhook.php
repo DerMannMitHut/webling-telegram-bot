@@ -8,19 +8,22 @@ $acceptedGroup = $secrets['WEBLING_MEMBER_GROUP_ACCEPTED'];
 $declinedGroup = $secrets['WEBLING_MEMBER_GROUP_DECLINED'];
 $weblingApiKey = $secrets['WEBLING_API_KEY'];
 
-#$content = file_get_contents("php://input");
-$content = file_get_contents("php://stdin");
+$content = file_get_contents("php://input");
+if ($content==="") {
+    $content = file_get_contents("php://stdin");
+}
+// $content = file_get_contents("php://stdin");
 $update = json_decode($content, true);
 
 if ($update === null) {
     // Invalid JSON received
     // TODO: Log invalid JSON for debugging
-    exit('No content.');
+    exit("Invalid JSON received in $content.");
 }
 
 if (!isset($update['message'])) {
     // TODO: Consider handling other update types or log ignored updates
-    exit("No message in {$content}");
+    exit("No message in $content");
 }
 
 $chatId = $update['message']['chat']['id'];
@@ -30,15 +33,36 @@ $text   = trim($update['message']['text']);
 
 function pushMemberToDifferentGroup($weblingBaseUrl, $weblingApiKey, $memberId, $sourceGroupId, $targetGroupId): bool {
     $url = "{$weblingBaseUrl}/api/1/member/{$memberId}";
-    print $url;
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        "apikey: $weblingApiKey"
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode !== 200) {
+        return false;
+    }
+
+    $memberData = json_decode($response, true);
+
+    if (!isset($memberData['parents']) || !in_array($sourceGroupId, $memberData['parents'])) {
+        echo "Member is not in expected source group (ID {$sourceGroupId}).\n";
+        return false;
+    }
+
     $data = [
       'type'     => 'member',
       'parents'  => [$targetGroupId],
     ];
+
     $payload = json_encode($data);
 
     $ch = curl_init($url);
-
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -51,8 +75,6 @@ function pushMemberToDifferentGroup($weblingBaseUrl, $weblingApiKey, $memberId, 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-
-    echo "Code: HTTP $httpCode\nResponse: $response";
 
     return ($httpCode === 200 || $httpCode === 204);
 }
@@ -88,27 +110,29 @@ if (strpos($text, '/accept') === 0) {
             sendMessage($chatId, "Mitglied {$memberId} akzeptiert.", $botToken);
         } else {
             sendMessage($chatId, "Ein Fehler beim Akzeptieren von {$memberId} ist aufgetreten.", $botToken);
+            sendMessage($chatId, "$content", $botToken);
         }
     } else {
         sendMessage($chatId, "Nutze zum Akzeptieren: /accept <id>", $botToken);
     }
 } elseif (strpos($text, '/decline') === 0) {
-/*    $parts = explode(' ', $text);
+    $parts = explode(' ', $text);
     if (count($parts) == 2) {
         $memberId = $parts[1];
         sendMessage($chatId, "Lehne Mitglied {$memberId} ab.", $botToken);
-        $isMoved = pushMemberToDifferentGroup($memberId, $openGroup, $declinedGroup);
+        $isMoved = pushMemberToDifferentGroup($weblingBaseUrl, $weblingApiKey, $memberId, $openGroup, $declinedGroup);
         if ($isMoved) {
             sendMessage($chatId, "Mitglied {$memberId} abgelehnt.", $botToken);
         } else {
             sendMessage($chatId, "Ein Fehler beim Ablehnen von {$memberId} ist aufgetreten.", $botToken);
+            sendMessage($chatId, "$content", $botToken);
         }
     } else {
         sendMessage($chatId, "Nutze zum Ablehnen: /decline <id>", $botToken);
     }
-*/} elseif (strpos($text, '/help') === 0) {
+} elseif (strpos($text, '/help') === 0) {
     sendMessage($chatId, "Benutze /accept <ID> oder /decline <ID>, um neue"
-        . "Mitglieder anzunehmen oder abzulehnen.", $botToken);
+        . " Mitglieder anzunehmen oder abzulehnen.", $botToken);
 } else {
     sendMessage($chatId, "Unknown command {$text}", $botToken);
 }
