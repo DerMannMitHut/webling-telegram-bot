@@ -12,7 +12,7 @@ jobs:
     steps:
     - name: Run curl command
       run: |
-        curl -X POST https://xn--metstbchen-eeb.de/webhooks/telegram-webhook.php -H 'Content-Type: application/json' -d '{
+        curl -X POST ${{ secrets.TELEGRAM_WEBHOOK_URL }} -H 'Content-Type: application/json' -d '{
         "message": {
         "chat": { "id": "${{ vars.TELEGRAM_CHAT_ID }}" },
         "text": "/list quiet"
