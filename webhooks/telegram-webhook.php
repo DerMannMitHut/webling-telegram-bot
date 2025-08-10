@@ -228,10 +228,11 @@ function handleList($config, $context, $param){
     $ignoreEmpty = ($param === "quiet");
     $applicationIds = getOpenApplicationIds($config);
     $applications = getMemberInfos($config, $applicationIds);
+    $openGroup = $config["WEBLING_MEMBER_GROUP_OPEN"];
 
     if (!$applications || count($applications) === 0){
         if (!$ignoreEmpty) sendTelegramMessage($config, $context, "Keine offenen Anträge gefunden.");
-        exit("No open applications found.")
+        exit("No open applications found.");
     }
 
     $message = "📋 *Offene Anträge* \\(".count($applications)."\\)\n\n";
