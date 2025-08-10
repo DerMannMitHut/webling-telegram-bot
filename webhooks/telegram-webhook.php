@@ -29,6 +29,12 @@ if (! $content) {
     if (! $content) {
         exit_log(400, 'Missing POST body');
     }
+
+    $expected = $config['TELEGRAM_WEBHOOK_SECRET'] ?? null;
+    $got = $_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? null;
+    if (!$expected || !hash_equals($expected, (string)$got)) {
+        exit_log(403, "Wrong secret or TELEGRAM_WEBHOOK_SECRET not configured correctly.");
+    }
 }
 
 $update = json_decode($content, true);
