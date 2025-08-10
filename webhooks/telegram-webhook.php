@@ -8,13 +8,10 @@ use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
 $config = include __DIR__.'/wh_config/config.php';
-
-$stdin = fopen('php://stdin', 'r');
-stream_set_blocking($stdin, false);
-$content = stream_get_contents($stdin);
-fclose($stdin);
-
-if (! $content) {
+ 
+if (PHP_SAPI === 'cli') {
+    $content = stream_get_contents(STDIN);
+} else {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'N/A';
     if ($method !== 'POST') {
         exit_log(405, "Only POST requests allowed, is: {$method}");
@@ -40,11 +37,11 @@ if (! $content) {
 $update = json_decode($content, true);
 
 if (json_last_error() || $update === null) {
-    exit_log(400, "Invalid JSON received in $content.");
+    exit_log(400, "Invalid JSON received in content.");
 }
 
 if (! isset($update['message'])) {
-    exit_log(400, "No message in $content");
+    exit_log(400, "No message in content.");
 }
 
 $chatId = $update['message']['chat']['id'] ?? null;
@@ -64,7 +61,7 @@ if (!in_array($chatId, $allowedChats)) {
         leaveChat($config, $context);
     }
 
-    exit_log(403, "Chat {$chatId} ignored.");
+    exit_log(200, "Chat {$chatId} ignored.");
 }
 
 $text = trim($update['message']['text'] ?? '');
@@ -166,14 +163,8 @@ function weblingRequest($config, $path, $method = 'GET', $body = null) {
     if ($baseUrl === null || $apiKey == null) {
         exit_log(500, "No WEBLING_BAES_URL or WEBLING_API_KEY given.");
     }
-    $url = "{$baseUrl}/api/1/$path";
-
+    $url = rtrim($baseUrl, '/')."/api/1/$path";
     $headers = ["apikey: {$apiKey}"];
-    if ($method === 'PUT' && $body !== null) {
-        $json = json_encode($body);
-        $headers[] = 'Content-Type: application/json';
-        $headers[] = 'Content-Length: '.strlen($json);
-    }
 
     $attempt = 0;
     while (true) {
@@ -183,7 +174,8 @@ function weblingRequest($config, $path, $method = 'GET', $body = null) {
         } elseif (($code === 429 || $code >= 500) && $attempt < 3) {
             usleep(($attempt*1000 + random_int(100, 300)) * 1000);
         } else {
-            error_log("Webling API error: $url HTTP $code, response: $data");
+            $snippet = is_string($data) ? substr($data, 0, 300) : json_encode($data);
+            error_log("Webling API error: $url HTTP $code, response: $snippet");
             return null;
         }
         $attempt++;
@@ -267,7 +259,13 @@ function sendMemberMail($config, string $id) {
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->setFrom($smtpFrom, 'Dein Verein');
         $mail->addAddress($memberEMail, "$memberVorname $memberName");
-        $mail->addCC('vorstand@brotundspielebs.de', 'Vorstand BuS');
+        $cc_email = $config['SMTP_CC_EMAIL'] ?? null;
+        $cc_name = $config['SMTP_CC_NAME'] ?? null;
+        if ($cc_email !== null && $cc_name !== null) {
+            $mail->addCC($cc_email, $cc_name);
+        }
+        $mail->Encoding = 'base64';
+        $mail->Timeout  = 10;
         $mail->isHTML(false);
         $mail->CharSet = 'UTF-8';
         $mail->Subject = 'Willkommen im Brot und Spiele e.V.';
