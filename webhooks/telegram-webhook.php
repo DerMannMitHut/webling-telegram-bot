@@ -92,7 +92,7 @@ function httpJson(string $url, string $method='GET', ?array $body=null, array $h
     ]);
 
     if ($body !== null) {
-        $json = json_encode($body, JSON_UNESCAPED_UNICODE);
+        $json = json_encode($body, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
         $h[] = 'Content-Type: application/json';
         $h[] = 'Content-Length: '.strlen($json);
@@ -160,7 +160,7 @@ function weblingRequest($config, $path, $method = 'GET', $body = null) {
     $baseUrl = $config['WEBLING_BASE_URL'] ?? null;
     $apiKey = $config['WEBLING_API_KEY'] ?? null;
     if ($baseUrl === null || $apiKey == null) {
-        exit_log(200, "No WEBLING_BAES_URL or WEBLING_API_KEY given.");
+        exit_log(200, "No WEBLING_BASE_URL or WEBLING_API_KEY given.");
     }
     $url = rtrim($baseUrl, '/')."/api/1/$path";
     $headers = ["apikey: {$apiKey}"];
@@ -184,17 +184,16 @@ function weblingRequest($config, $path, $method = 'GET', $body = null) {
 function pushMemberToDifferentGroup($config, $context, $memberId, $sourceGroupId, $targetGroupId) {
     $memberAccess = "member/$memberId";
     $data = weblingRequest($config, $memberAccess);
-
-    if (! isset($data['parents']) || ! in_array($sourceGroupId, $data['parents'])) {
-        exit_log(200, "Member {$memberId} is not in expected source group ($sourceGroupId).");
+    if (!is_array($data)) {
+        sendTelegramMessage($config, $context, "Webling-Fehler beim Laden von {$memberId}.");
+        return false;
     }
-
-    $data = [
-        'type' => 'member',
-        'parents' => [$targetGroupId],
-    ];
-
-    return weblingRequest($config, $memberAccess, 'PUT', $data);
+    if (!isset($data['parents']) || !in_array($sourceGroupId, $data['parents'], true)) {
+        sendTelegramMessage($config, $context, "Mitglied {$memberId} nicht mehr in der Quellgruppe.");
+        return false;
+    }
+    $payload = ['type' => 'member', 'parents' => [$targetGroupId]];
+    return weblingRequest($config, $memberAccess, 'PUT', $payload) === true;
 }
 
 function getOpenApplicationIds($config) {
@@ -402,8 +401,9 @@ function handleHelp($config, $context, $param) {
 }
 
 // ------------------------------------- main
-$command = strtok($text, ' ');
-$param = trim(substr($text, strlen($command)));
+$commandRaw = strtok($text, ' ');
+$command = strtolower(preg_replace('~/@[\w_]+$~', '', $commandRaw));
+$param   = trim(substr($text, strlen($commandRaw)));
 
 $handlers = [
     '/list' => 'handleList',
