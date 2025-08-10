@@ -6,22 +6,8 @@ require __DIR__ . '/phpmailer/src/SMTP.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+
 $config = include(__DIR__ . '/wh_config/config.php');
-
-$botToken = $config['TELEGRAM_BOT_TOKEN'];
-$allowedChats = $config['TELEGRAM_ALLOWED_CHATS'];
-
-$weblingBaseUrl = $config['WEBLING_BASE_URL'];
-$openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'];
-$acceptedGroup = $config['WEBLING_MEMBER_GROUP_ACCEPTED'];
-$declinedGroup = $config['WEBLING_MEMBER_GROUP_DECLINED'];
-$weblingApiKey = $config['WEBLING_API_KEY'];
-
-$smtpHost = $config['SMTP_HOST'];
-$smtpPort = $config['SMTP_PORT'];
-$smtpUser = $config['SMTP_USER'];
-$smtpPass = $config['SMTP_PASS'];
-$smtpFrom = $config['SMTP_FROM'];
 
 $stdin = fopen('php://stdin', 'r');
 stream_set_blocking($stdin, false);
@@ -57,149 +43,98 @@ if (!isset($update['message'])) {
     exit("No message in $content");
 }
 
-$chatId = $update['message']['chat']['id'] ?? null;
+$text = trim($update['message']['text'] ?? "");
+if ($text === "") {
+    http_response_code(400);
+    exit('No text found');
+}
 
+$chatId = $update['message']['chat']['id'] ?? null;
 if ($chatId === null) {
     http_response_code(400);
     exit('No chat ID found');
 }
 
-if (!in_array($chatId, $allowedChats)) {
+$context = [
+    'chatId' => $chatId,
+    'text' => $text,
+];
+
+if (!in_array($chatId, $config['TELEGRAM_ALLOWED_CHATS'])) {
     $chatType = $update['message']['chat']['type'] ?? '';
     if (in_array($chatType, ['group', 'supergroup', 'channel'])) {
-        sendTelegramMessage("Leaving.");
-        $payload = ['chat_id' => $chatId];
-        getFromTelegram("leaveChat", $payload);
-    }
-    else {
-        sendTelegramMessage("Ignored.");
+        sendTelegramMessage($config, $context, "Leaving.");
+        leaveChat($config, $context);
     }
 
     exit("Chat {$chatId} ignored.");
 }
 
-$text = trim($update['message']['text']) ?? "";
-
 // TODO: Implement validation or authentication to verify webhook origin and prevent misuse
 
 // ------------------------------------ TELEGRAM
-function escMDV2($text) {
-    $escapeChars = [
-        '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'
-    ];
-    $escapedText = $text;
-    foreach ($escapeChars as $char) {
-        $escapedText = str_replace($char, '\\' . $char, $escapedText);
-    }
-    return $escapedText;
-}
-
-function getFromTelegram($command, $payload) {
-    global $botToken;
-    $url = "https://api.telegram.org/bot{$botToken}/{$command}";
-
+function telegramRequest($config, $method, $payload) {
+    $url = "https://api.telegram.org/bot{$config['TELEGRAM_BOT_TOKEN']}/{$method}";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($payload));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-
     $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-
     if ($httpCode !== 200 || $response === false) {
-        error_log("leaveChat fehlgeschlagen: HTTP $httpCode, cURL error: $error, response: $response");
-        return false;
+        error_log("Telegram API error: HTTP $httpCode, cURL: $error, response: $response");
     }
-    return true;
+    return $response;
 }
 
-function sendTelegramMessage($text) {
-    sendFormattedTelegramMessage(escMDV2($text));
-}
-
-function sendFormattedTelegramMessage($text) {
-    echo $text;
-    global $chatId, $botToken;
-    $url = "https://api.telegram.org/bot$botToken/sendMessage";
-    $postFields = [
-        'chat_id' => $chatId,
-        'text' => $text,
-        'parse_mode' => "MarkdownV2",
+function sendTelegramMessage($config, $context, $message, $markdown = false) {
+    $payload = [
+        'chat_id' => $context['chatId'],
+        'text' => $message,
     ];
-
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-
-    $response = curl_exec($ch);
-    curl_close($ch);
-
-    echo $response;
-
-    if ($response === false) {
-        // TODO: Log curl error: curl_error($ch)
-    } else {
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        if ($httpCode !== 200) {
-            // TODO: Log HTTP error code and response
-        }
-    }
+    if ($markdown) $payload['parse_mode'] = "MarkdownV2";
+    return telegramRequest($config, 'sendMessage', $payload);
 }
 
-function formatTelegramMessage($applications, $ignoreEmpty) {
-    global $weblingBaseUrl, $openGroup;
-    if (!$applications || count($applications) === 0){
-        if ($ignoreEmpty) return "";
-        else return escMDV2("Keine offenen Anträge gefunden.");
-    }
-    $message = "📋 *Offene Anträge* \\(".count($applications)."\\)\n\n";
-    foreach ($applications as $app) {
-        $id = $app["id"] ?? "N/A";
-        $props = $app["properties"] ?? [];
-
-        $vorname = escMDV2($props["Vorname"] ?? "N/A");
-        $nachname = escMDV2($props["Name"] ?? "N/A");
-        $rufname = escMDV2($props["Rufname"] ?? "N/A");
-        $message .= "👤 *{$vorname} {$nachname}*\n  Nickname: {$rufname}\n  ID: {$id}\n\n";
-    }
-    $dt = escMDV2(date("d.m.Y H:i"));
-    $message .= "🕐 Stand: {$dt}\n";
-    $message .= escMDV2("👉 {$weblingBaseUrl}/admin#/members/membergroup/{$openGroup}");
-    return $message;
+function leaveChat($config, $context) {
+    $payload = ['chat_id' => $context['chatId']];
+    return telegramRequest($config, 'leaveChat', $payload);
 }
 
 // ------------------------------------ WEBLING
-function getFromWebling($apiRequest) {
-    global $weblingBaseUrl, $weblingApiKey, $openGroup;
-    $url = "{$weblingBaseUrl}/api/1/$apiRequest";
+function weblingRequest($config, $path, $method = "GET", $body = null) {
+    $url = "{$config['WEBLING_BASE_URL']}/api/1/$path";
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "apikey: $weblingApiKey"
-    ]);
+    $headers = ["apikey: {$config['WEBLING_API_KEY']}"];
+    if ($method === "PUT" && $body !== null) {
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+        $json = json_encode($body);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+        $headers[] = "Content-Type: application/json";
+        $headers[] = "Content-Length: " . strlen($json);
+    }
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
-
-    if ($httpCode !== 200) {
-        return [];
+    if ($httpCode !== 200 && $httpCode !== 204) {
+        error_log("Webling API error: $url HTTP $httpCode, response: $response");
+        return null;
     }
-    $data = json_decode($response, true);
-    return $data;
+    return $method === "PUT" ? true : json_decode($response, true);
 }
 
-function pushMemberToDifferentGroup($memberId, $sourceGroupId, $targetGroupId): bool {
-    global $weblingBaseUrl, $weblingApiKey;
-    $data = getFromWebling("member/{$memberId}");
+
+function pushMemberToDifferentGroup($config, $context, $memberId, $sourceGroupId, $targetGroupId): bool {
+    $memberAccess = "member/$memberId";
+    $data = weblingRequest($config, $memberAccess);
 
     if (!isset($data['parents']) || !in_array($sourceGroupId, $data['parents'])) {
-        sendTelegramMessage("Member is not in expected source group (ID {$sourceGroupId}).");
+        sendTelegramMessage($config, $context, "Member is not in expected source group (ID {$sourceGroupId}).");
         return false;
     }
 
@@ -208,37 +143,20 @@ function pushMemberToDifferentGroup($memberId, $sourceGroupId, $targetGroupId): 
         'parents' => [$targetGroupId],
     ];
 
-    $payload = json_encode($data);
-
-    $url = "{$weblingBaseUrl}/api/1/member/$memberId";
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Content-Type: application/json",
-        "apikey: $weblingApiKey",
-        "Content-Length: " . strlen($payload)
-    ]);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    return ($httpCode === 200 || $httpCode === 204);
+    return weblingRequest($config, $memberAccess, "PUT", $data);
 }
 
-function getOpenApplicationIds() {
-    global $openGroup;
-    $data = getFromWebling("member?filter=%24ancestors.%24id={$openGroup}");
-    return $data['objects'];
+function getOpenApplicationIds($config) {
+    $group = $config["WEBLING_MEMBER_GROUP_OPEN"];
+    $data = weblingRequest($config, "member?filter=%24ancestors.%24id={$group}");
+    return is_array($data) && isset($data['objects']) ? $data['objects'] : [];
 }
 
-function getMemberInfos($ids) {
-    if (count($ids) === 0 ) return [];
+function getMemberInfos($config, $ids) {
+    if (count($ids) === 0) return [];
     $idString = implode(',', $ids);
-    $data = getFromWebling("member/$idString");
-    if (count($ids) === 1 ) {
+    $data = weblingRequest($config, "member/$idString");
+    if (count($ids) === 1) {
         $data['id'] = $idString;
         return [$data];
     }
@@ -247,9 +165,7 @@ function getMemberInfos($ids) {
 
 // ------------------------------------ MAIL
 function sendMemberMail(string $id): bool {
-    global $smtpFrom, $smtpHost, $smtpPass, $smtpUser, $smtpPort;
-
-    $data = getFromWebling("member/$id");
+    $data = weblingRequest($config, "member/$id");
     $prop = $data['properties'];
     $memberName = $prop["Name"];
     $memberVorname = $prop["Vorname"];
@@ -261,13 +177,13 @@ function sendMemberMail(string $id): bool {
 
     try {
         $mail->isSMTP();
-        $mail->Host       = $smtpHost;
-        $mail->Port       = $smtpPort;
+        $mail->Host       = $config['SMTP_HOST'];
+        $mail->Port       = $config['SMTP_PORT'];
         $mail->SMTPAuth   = true;
-        $mail->Username   = $smtpUser;
-        $mail->Password   = $smtpPass;
+        $mail->Username   = $config['SMTP_USER'];
+        $mail->Password   = $config['SMTP_PASS'];
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->setFrom($smtpFrom, 'Dein Verein');
+        $mail->setFrom($config['SMTP_FROM'], 'Dein Verein');
         $mail->addAddress($memberEMail, "$memberVorname $memberName");
         $mail->addCC('vorstand@brotundspielebs.de', 'Vorstand BuS');
         $mail->isHTML(false);
@@ -295,61 +211,108 @@ function sendMemberMail(string $id): bool {
     }
 }
 
-// ------------------------------------- main
+// ------------------------------------- escaping for MarkdownV2
+function escMDV2($text) {
+    $escapeChars = [
+        '\\', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'
+    ];
+    $escapedText = $text;
+    foreach ($escapeChars as $char) {
+        $escapedText = str_replace($char, '\\' . $char, $escapedText);
+    }
+    return $escapedText;
+}
 
-if (strpos($text, '/list') === 0) {
-    $parts = explode(' ', $text);
-    $ignoreEmpty = (count($parts) > 1);
-    $applicationIds = getOpenApplicationIds();
-    $applications = getMemberInfos($applicationIds);
-    $message = formatTelegramMessage($applications, $ignoreEmpty);
-    sendFormattedTelegramMessage($message);
-} elseif (strpos($text, '/accept') === 0) {
-    $parts = explode(' ', $text);
-    if (count($parts) == 2) {
-        $memberId = $parts[1];
-        if (!ctype_digit($memberId)) {
-            sendTelegramMessage("Ungültige ID: $memberId");
-            exit("Illegal ID: {$memberId}");
-        }
-        sendTelegramMessage("Akzeptiere Mitglied {$memberId}.");
-        $isMoved = pushMemberToDifferentGroup($memberId, $openGroup, $acceptedGroup);
-        if ($isMoved) {
-            $isMailSent = sendMemberMail($memberId);
-            if ($isMailSent)
-                sendTelegramMessage("Mitglied {$memberId} akzeptiert, E-Mail wurde versandt.");
-            else
-                sendTelegramMessage("Mitglied {$memberId} akzeptiert, E-Mail-Versand ist gescheitert.");
-        } else {
-            sendTelegramMessage("Ein Fehler beim Akzeptieren von {$memberId} ist aufgetreten.");
-        }
-    } else {
-        sendTelegramMessage("Nutze zum Akzeptieren: /accept <id>");
+// ------------------------------------- commands
+function handleList($config, $context, $param){
+    $ignoreEmpty = ($param === "quiet");
+    $applicationIds = getOpenApplicationIds($config);
+    $applications = getMemberInfos($config, $applicationIds);
+
+    if (!$applications || count($applications) === 0){
+        if (!$ignoreEmpty) sendTelegramMessage($config, $context, "Keine offenen Anträge gefunden.");
+        exit("No open applications found.")
     }
-} elseif (strpos($text, '/decline') === 0) {
-    $parts = explode(' ', $text);
-    if (count($parts) == 2) {
-        $memberId = $parts[1];
-        if (!ctype_digit($memberId)) {
-            sendTelegramMessage("Ungültige ID: $memberId");
-            exit("Illegal ID: {$memberId}");
-        }
-        sendTelegramMessage("Lehne Mitglied {$memberId} ab.");
-        $isMoved = pushMemberToDifferentGroup($memberId, $openGroup, $declinedGroup);
-        if ($isMoved) {
-            sendTelegramMessage("Mitglied {$memberId} abgelehnt.");
-        } else {
-            sendTelegramMessage("Ein Fehler beim Ablehnen von {$memberId} ist aufgetreten.");
-        }
-    } else {
-        sendTelegramMessage("Nutze zum Ablehnen: /decline <id>");
+
+    $message = "📋 *Offene Anträge* \\(".count($applications)."\\)\n\n";
+    foreach ($applications as $app) {
+        $id = $app["id"] ?? "N/A";
+        $props = $app["properties"] ?? [];
+
+        $vorname = escMDV2($props["Vorname"] ?? "N/A");
+        $nachname = escMDV2($props["Name"] ?? "N/A");
+        $rufname = escMDV2($props["Rufname"] ?? "N/A");
+        $message .= "👤 *{$vorname} {$nachname}*\n  Nickname: {$rufname}\n  ID: {$id}\n\n";
     }
-} elseif (strpos($text, '/help') === 0) {
-    sendTelegramMessage("Benutze /accept <ID> oder /decline <ID>, um neue"
-        . " Mitglieder anzunehmen oder abzulehnen und /list um die offenen Anträge"
-        . " aufzulisten.");
+    $dt = escMDV2(date("d.m.Y H:i"));
+    $message .= "🕐 Stand: {$dt}\n";
+    $weblingBaseUrl = $config['WEBLING_BASE_URL'];
+    $message .= escMDV2("👉 {$weblingBaseUrl}/admin#/members/membergroup/{$openGroup}");
+
+    sendTelegramMessage($config, $context, $message, true);
+}
+
+function handleAccept($config, $context, $memberId){
+    if ($memberId === null or $memberId === "") {
+        sendTelegramMessage($config, $context, "Nutze zum Akzeptieren: /accept <id>");
+        exit("No Member ID given.");
+    }
+    if (!ctype_digit($memberId)) {
+        sendTelegramMessage($config, $context, "Ungültige ID: $memberId");
+        exit("Illegal ID: {$memberId}");
+    }
+    sendTelegramMessage($config, $context, "Akzeptiere Mitglied {$memberId}.");
+    $isMoved = pushMemberToDifferentGroup($memberId, $openGroup, $acceptedGroup);
+    if ($isMoved) {
+        $isMailSent = sendMemberMail($memberId);
+        if ($isMailSent)
+            sendTelegramMessage($config, $context, "Mitglied {$memberId} akzeptiert, E-Mail wurde versandt.");
+        else
+            sendTelegramMessage($config, $context, "Mitglied {$memberId} akzeptiert, E-Mail-Versand ist gescheitert.");
+    } else {
+        sendTelegramMessage($config, $context, "Ein Fehler beim Akzeptieren von {$memberId} ist aufgetreten.");
+    }
+}
+
+function handleDecline($config, $context, $memberId){
+    if ($memberId === null or $memberId === "") {
+        sendTelegramMessage($config, $context, "Nutze zum Ablehnen: /decline <id>");
+        exit("No Member ID given.");
+    }
+    if (!ctype_digit($memberId)) {
+        sendTelegramMessage($config, $context, "Ungültige ID: $memberId");
+        exit("Illegal ID: {$memberId}");
+    }
+    sendTelegramMessage($config, $context, "Lehne Mitglied {$memberId} ab.");
+    $isMoved = pushMemberToDifferentGroup($memberId, $openGroup, $declinedGroup);
+    if ($isMoved) {
+        sendTelegramMessage($config, $context, "Mitglied {$memberId} abgelehnt.");
+    } else {
+        sendTelegramMessage($config, $context, "Ein Fehler beim Ablehnen von {$memberId} ist aufgetreten.");
+    }
+}
+
+function handleHelp($config, $context, $param){
+    sendTelegramMessage($config, $context,
+		"Benutze /accept <ID> oder /decline <ID>, um neue"
+	      . " Mitglieder anzunehmen oder abzulehnen und /list um die offenen Anträge"
+	      . " aufzulisten.");
+}
+
+// ------------------------------------- main
+$command = strtok($text, " ");
+$param = trim(substr($text, strlen($command)));
+
+$handlers = [
+    '/list' => 'handleList',
+    '/accept' => 'handleAccept',
+    '/decline' => 'handleDecline',
+    '/help' => 'handleHelp',
+];
+if (isset($handlers[$command])) {
+    $handlers[$command]($config, $context, $param);
 } else {
-    // do nothing
+    exit("Unknown command {$command}");
 }
 
 // TODO: Implement logging for received updates and errors

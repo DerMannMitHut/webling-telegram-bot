@@ -49,7 +49,7 @@ Thumbs.db
 *.log
 
 # config with secrets
-wh_config/
+webhooks/wh_config/
 
 # libs
 /webhooks/phpmailer/
