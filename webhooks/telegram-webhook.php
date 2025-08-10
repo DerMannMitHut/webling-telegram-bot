@@ -75,35 +75,74 @@ $context['text'] = $text;
 
 // TODO: Implement validation or authentication to verify webhook origin and prevent misuse
 // ------------------------------------ GENERAL
-function exit_log($code, $message)
-{
-    echo $message;
+function exit_log($code, $message) {
     http_response_code($code);
+    error_log($message);
     exit;
 }
 
-// ------------------------------------ TELEGRAM
-function telegramRequest($config, $method, $payload)
-{
-    $url = "https://api.telegram.org/bot{$config['TELEGRAM_BOT_TOKEN']}/{$method}";
+function httpJson(string $url, string $method='GET', ?array $body=null, array $headers=[]): array {
     $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-    $response = curl_exec($ch);
-    $error = curl_error($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    if ($httpCode !== 200 || $response === false) {
-        error_log("Telegram API error: HTTP $httpCode, cURL: $error, response: $response");
+    $h = array_merge(['Accept: application/json'], $headers);
+
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST  => $method,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT        => 15,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+        CURLOPT_HTTPHEADER     => $h,
+    ]);
+
+    if ($body !== null) {
+        $json = json_encode($body, JSON_UNESCAPED_UNICODE);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+        $h[] = 'Content-Type: application/json';
+        $h[] = 'Content-Length: '.strlen($json);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $h);
     }
 
-    return $response;
+    $response = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $err  = curl_error($ch);
+    curl_close($ch);
+
+    if ($response === false) {
+        throw new RuntimeException("HTTP error ($code): $err");
+    }
+    $data = json_decode($response, true);
+    if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+        throw new RuntimeException("Invalid JSON from $url: ".json_last_error_msg());
+    }
+    return [$code, $data];
 }
 
-function sendTelegramMessage($config, $context, $message, $markdown = false)
-{
+// ------------------------------------ TELEGRAM
+function telegramRequest($config, $method, $payload) {
+    $telegramBotToken = $config['TELEGRAM_BOT_TOKEN'] ?? null;
+    if ($telegramBotToken === null) {
+        exit_log(500, "No telegram bot token configured.");
+    }
+    $url = "https://api.telegram.org/bot{$telegramBotToken}/$method";
+    $attempts = 0;
+    while (true) {
+        [$code, $data] = httpJson($url, 'POST', $payload);
+        if ($code>=200 && $code<300){
+            return $data;
+        } elseif ($code === 429 && isset($data['parameters']['retry_after'])) {
+            sleep((int)$data['parameters']['retry_after']);
+        } elseif (($code === 429 || $code >= 500) && $attempts < 3) {
+            usleep(($attempts*1000+random_int(100,300)) * 1000);
+        } else {
+            error_log("Telegram error $code for $method: ".json_encode($data));
+            return null;
+        }
+        $attempts++;
+    }
+}
+
+function sendTelegramMessage($config, $context, $message, $markdown = false) {
     $payload = [
         'chat_id' => $context['chatId'],
         'text' => $message,
@@ -115,46 +154,43 @@ function sendTelegramMessage($config, $context, $message, $markdown = false)
     return telegramRequest($config, 'sendMessage', $payload);
 }
 
-function leaveChat($config, $context)
-{
+function leaveChat($config, $context) {
     $payload = ['chat_id' => $context['chatId']];
     return telegramRequest($config, 'leaveChat', $payload);
 }
 
 // ------------------------------------ WEBLING
-function weblingRequest($config, $path, $method = 'GET', $body = null)
-{
+function weblingRequest($config, $path, $method = 'GET', $body = null) {
     $baseUrl = $config['WEBLING_BASE_URL'] ?? null;
     $apiKey = $config['WEBLING_API_KEY'] ?? null;
     if ($baseUrl === null || $apiKey == null) {
         exit_log(500, "No WEBLING_BAES_URL or WEBLING_API_KEY given.");
     }
     $url = "{$baseUrl}/api/1/$path";
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
     $headers = ["apikey: {$apiKey}"];
     if ($method === 'PUT' && $body !== null) {
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
         $json = json_encode($body);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
         $headers[] = 'Content-Type: application/json';
         $headers[] = 'Content-Length: '.strlen($json);
     }
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    if ($httpCode !== 200 && $httpCode !== 204) {
-        error_log("Webling API error: $url HTTP $httpCode, response: $response");
 
-        return null;
+    $attempt = 0;
+    while (true) {
+        [$code, $data] = httpJson($url, $method, $body, $headers);
+        if ($code >= 200 && $code < 300) {
+            return $method === 'PUT' ? true : $data;
+        } elseif (($code === 429 || $code >= 500) && $attempt < 3) {
+            usleep(($attempt*1000 + random_int(100, 300)) * 1000);
+        } else {
+            error_log("Webling API error: $url HTTP $code, response: $data");
+            return null;
+        }
+        $attempt++;
     }
-
-    return $method === 'PUT' ? true : json_decode($response, true);
 }
 
-function pushMemberToDifferentGroup($config, $context, $memberId, $sourceGroupId, $targetGroupId)
-{
+function pushMemberToDifferentGroup($config, $context, $memberId, $sourceGroupId, $targetGroupId) {
     $memberAccess = "member/$memberId";
     $data = weblingRequest($config, $memberAccess);
 
@@ -170,8 +206,7 @@ function pushMemberToDifferentGroup($config, $context, $memberId, $sourceGroupId
     return weblingRequest($config, $memberAccess, 'PUT', $data);
 }
 
-function getOpenApplicationIds($config)
-{
+function getOpenApplicationIds($config) {
     $group = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     if ($group === null) {
         exit_log(500, "WEBLING_MEMBER_GROUP_OPEN not set.");
@@ -181,8 +216,7 @@ function getOpenApplicationIds($config)
     return is_array($data) && isset($data['objects']) ? $data['objects'] : [];
 }
 
-function getMemberInfos($config, $ids)
-{
+function getMemberInfos($config, $ids) {
     if (count($ids) === 0) {
         return [];
     }
@@ -198,8 +232,7 @@ function getMemberInfos($config, $ids)
 }
 
 // ------------------------------------ MAIL
-function sendMemberMail($config, string $id)
-{
+function sendMemberMail($config, string $id) {
     $smtpHost = $config['SMTP_HOST'] ?? null;
     $smtpPort = $config['SMTP_PORT'] ?? null;
     $smtpUser = $config['SMTP_USER'] ?? null;
@@ -263,8 +296,7 @@ function sendMemberMail($config, string $id)
 }
 
 // ------------------------------------- escaping for MarkdownV2
-function escMDV2($text)
-{
+function escMDV2($text) {
     $escapeChars = [
         '\\', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!',
     ];
@@ -277,8 +309,7 @@ function escMDV2($text)
 }
 
 // ------------------------------------- commands
-function handleList($config, $context, $param)
-{
+function handleList($config, $context, $param) {
     $ignoreEmpty = ($param === 'quiet');
     $applicationIds = getOpenApplicationIds($config);
     $applications = getMemberInfos($config, $applicationIds);
@@ -314,8 +345,7 @@ function handleList($config, $context, $param)
     sendTelegramMessage($config, $context, $message, true);
 }
 
-function handleAccept($config, $context, $memberId)
-{
+function handleAccept($config, $context, $memberId) {
     $openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     $acceptedGroup = $config['WEBLING_MEMBER_GROUP_ACCEPTED'] ?? null;
     if( $openGroup === null || $acceptedGroup === null ) {
@@ -343,8 +373,7 @@ function handleAccept($config, $context, $memberId)
     }
 }
 
-function handleDecline($config, $context, $memberId)
-{
+function handleDecline($config, $context, $memberId) {
     $openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     $declinedGroup = $config['WEBLING_MEMBER_GROUP_DECLINED'] ?? null;
     if( $openGroup === null || $declinedGroup === null ) {
@@ -367,8 +396,7 @@ function handleDecline($config, $context, $memberId)
     }
 }
 
-function handleHelp($config, $context, $param)
-{
+function handleHelp($config, $context, $param) {
     sendTelegramMessage(
         $config,
         $context,
