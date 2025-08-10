@@ -74,6 +74,7 @@ $context['text'] = $text;
 function exit_log($code, $message) {
     http_response_code($code);
     error_log($message);
+    // echo($message);
     exit;
 }
 
@@ -107,10 +108,17 @@ function httpJson(string $url, string $method='GET', ?array $body=null, array $h
     if ($response === false) {
         throw new RuntimeException("HTTP error ($code): $err");
     }
-    $data = json_decode($response, true);
-    if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
-        throw new RuntimeException("Invalid JSON from $url: ".json_last_error_msg());
+
+    if ( $response !== "" ) {
+        $data = json_decode($response, true);
+        if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+            throw new RuntimeException("Invalid JSON from $url: ".json_last_error_msg());
+        }
     }
+    else {
+        $data = [];
+    }
+
     return [$code, $data];
 }
 
@@ -188,7 +196,7 @@ function pushMemberToDifferentGroup($config, $context, $memberId, $sourceGroupId
         sendTelegramMessage($config, $context, "Webling-Fehler beim Laden von {$memberId}.");
         return false;
     }
-    if (!isset($data['parents']) || !in_array($sourceGroupId, $data['parents'], true)) {
+    if (!isset($data['parents']) || !in_array($sourceGroupId, $data['parents'])) {
         sendTelegramMessage($config, $context, "Mitglied {$memberId} nicht mehr in der Quellgruppe.");
         return false;
     }
