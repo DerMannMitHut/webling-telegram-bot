@@ -48,9 +48,10 @@ Thumbs.db
 # Logs
 *.log
 
-# config with secrets
+# potential secrets
 webhooks/wh_config/
+do_sftp_upload.sh
 
 # libs
 /webhooks/phpmailer/
-/do_sftp_upload.sh
+webhooks/test_webhook.sh
