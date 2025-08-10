@@ -41,12 +41,12 @@ if (json_last_error() || $update === null) {
 }
 
 if (! isset($update['message'])) {
-    exit_log(400, "No message in content.");
+    exit_log(200, "No message in content.");
 }
 
 $chatId = $update['message']['chat']['id'] ?? null;
 if ($chatId === null) {
-    exit_log(400, 'No chat ID found');
+    exit_log(200, 'No chat ID found');
 }
 
 $context = [
@@ -66,11 +66,10 @@ if (!in_array($chatId, $allowedChats)) {
 
 $text = trim($update['message']['text'] ?? '');
 if ($text === '') {
-    exit_log(400, 'No text found');
+    exit_log(200, 'No text found');
 }
 $context['text'] = $text;
 
-// TODO: Implement validation or authentication to verify webhook origin and prevent misuse
 // ------------------------------------ GENERAL
 function exit_log($code, $message) {
     http_response_code($code);
@@ -119,7 +118,7 @@ function httpJson(string $url, string $method='GET', ?array $body=null, array $h
 function telegramRequest($config, $method, $payload) {
     $telegramBotToken = $config['TELEGRAM_BOT_TOKEN'] ?? null;
     if ($telegramBotToken === null) {
-        exit_log(500, "No telegram bot token configured.");
+        exit_log(200, "No telegram bot token configured.");
     }
     $url = "https://api.telegram.org/bot{$telegramBotToken}/$method";
     $attempts = 0;
@@ -161,7 +160,7 @@ function weblingRequest($config, $path, $method = 'GET', $body = null) {
     $baseUrl = $config['WEBLING_BASE_URL'] ?? null;
     $apiKey = $config['WEBLING_API_KEY'] ?? null;
     if ($baseUrl === null || $apiKey == null) {
-        exit_log(500, "No WEBLING_BAES_URL or WEBLING_API_KEY given.");
+        exit_log(200, "No WEBLING_BAES_URL or WEBLING_API_KEY given.");
     }
     $url = rtrim($baseUrl, '/')."/api/1/$path";
     $headers = ["apikey: {$apiKey}"];
@@ -187,7 +186,7 @@ function pushMemberToDifferentGroup($config, $context, $memberId, $sourceGroupId
     $data = weblingRequest($config, $memberAccess);
 
     if (! isset($data['parents']) || ! in_array($sourceGroupId, $data['parents'])) {
-        exit_log(400, "Member {$memberId} is not in expected source group ($sourceGroupId).");
+        exit_log(200, "Member {$memberId} is not in expected source group ($sourceGroupId).");
     }
 
     $data = [
@@ -201,7 +200,7 @@ function pushMemberToDifferentGroup($config, $context, $memberId, $sourceGroupId
 function getOpenApplicationIds($config) {
     $group = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     if ($group === null) {
-        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN not set.");
+        exit_log(200, "WEBLING_MEMBER_GROUP_OPEN not set.");
     }
     $data = weblingRequest($config, "member?filter=%24ancestors.%24id={$group}");
 
@@ -231,7 +230,7 @@ function sendMemberMail($config, string $id) {
     $smtpPass = $config['SMTP_PASS'] ?? null;
     $smtpFrom = $config['SMTP_FROM'] ?? null;
     if (in_array(null, [$smtpHost, $smtpPort, $smtpUser, $smtpPass, $smtpFrom])){
-        exit_log(500, 
+        exit_log(200, 
         "SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM must be defined properly.");
     }
 
@@ -244,7 +243,7 @@ function sendMemberMail($config, string $id) {
     $memberEMail = $prop['E-Mail'] ?? null;
 
     if ($memberEMail === null) {
-        exit_log(500, "Member {$id}, {$memberRufname}, has no email address.");
+        exit_log(200, "Member {$id}, {$memberRufname}, has no email address.");
     }
 
     $mail = new PHPMailer(true);
@@ -313,7 +312,7 @@ function handleList($config, $context, $param) {
     $applications = getMemberInfos($config, $applicationIds);
     $openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     if ($openGroup === null) {
-        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN not defined.");
+        exit_log(200, "WEBLING_MEMBER_GROUP_OPEN not defined.");
     }
 
     if (! $applications || count($applications) === 0) {
@@ -347,17 +346,16 @@ function handleAccept($config, $context, $memberId) {
     $openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     $acceptedGroup = $config['WEBLING_MEMBER_GROUP_ACCEPTED'] ?? null;
     if( $openGroup === null || $acceptedGroup === null ) {
-        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN and WEBLING_MEMBER_GROUP_ACCEPTED must be configured.");
+        exit_log(200, "WEBLING_MEMBER_GROUP_OPEN and WEBLING_MEMBER_GROUP_ACCEPTED must be configured.");
     }
     if ($memberId === null or $memberId === '') {
         sendTelegramMessage($config, $context, 'Nutze zum Akzeptieren: /accept <id>');
-        exit_log(400, 'No Member ID given.');
+        exit_log(200, 'No Member ID given.');
     }
     if (! ctype_digit($memberId)) {
         sendTelegramMessage($config, $context, "Ungültige ID: $memberId");
-        exit_log(400, "Illegal ID: {$memberId}");
+        exit_log(200, "Illegal ID: {$memberId}");
     }
-    sendTelegramMessage($config, $context, "Akzeptiere Mitglied {$memberId}.");
     $isMoved = pushMemberToDifferentGroup($config, $context, $memberId, $openGroup, $acceptedGroup);
     if ($isMoved) {
         $isMailSent = sendMemberMail($config, $memberId);
@@ -375,17 +373,16 @@ function handleDecline($config, $context, $memberId) {
     $openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     $declinedGroup = $config['WEBLING_MEMBER_GROUP_DECLINED'] ?? null;
     if( $openGroup === null || $declinedGroup === null ) {
-        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN and WEBLING_MEMBER_GROUP_DECLINED must be configured.");
+        exit_log(200, "WEBLING_MEMBER_GROUP_OPEN and WEBLING_MEMBER_GROUP_DECLINED must be configured.");
     }
     if ($memberId === null or $memberId === '') {
         sendTelegramMessage($config, $context, 'Nutze zum Ablehnen: /decline <id>');
-        exit_log(400, 'No Member ID given.');
+        exit_log(200, 'No Member ID given.');
     }
     if (! ctype_digit($memberId)) {
         sendTelegramMessage($config, $context, "Ungültige ID: $memberId");
-        exit_log(400, "Illegal ID: {$memberId}");
+        exit_log(200, "Illegal ID: {$memberId}");
     }
-    sendTelegramMessage($config, $context, "Lehne Mitglied {$memberId} ab.");
     $isMoved = pushMemberToDifferentGroup($config, $context, $memberId, $openGroup, $declinedGroup);
     if ($isMoved) {
         sendTelegramMessage($config, $context, "Mitglied {$memberId} abgelehnt.");
@@ -418,8 +415,6 @@ if (isset($handlers[$command])) {
     $handlers[$command]($config, $context, $param);
     exit();
 } else {
-    exit_log(400, "Unknown command {$command}");
+    exit_log(200, "Unknown command {$command}");
 }
 
-// TODO: Implement logging for received updates and errors
-// TODO: Consider adding rate limiting or spam protection mechanisms
