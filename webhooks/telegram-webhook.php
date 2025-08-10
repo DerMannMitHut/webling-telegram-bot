@@ -16,43 +16,38 @@ fclose($stdin);
 
 if (! $content) {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        exit('Only POST requests allowed');
+        exit_log(405, "Only POST requests allowed");
     }
 
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
     if (stripos($contentType, 'application/json') !== 0) {
-        http_response_code(415);
-        exit('Content-Type must be application/json');
+        exit_log(415, 'Content-Type must be application/json');
     }
 
     $content = file_get_contents('php://input');
     if (! $content) {
-        http_response_code(400);
-        exit('Missing POST body');
+        exit_log(400, 'Missing POST body');
     }
 }
 
 $update = json_decode($content, true);
 
-if ($update === null) {
-    exit("Invalid JSON received in $content.");
+if (json_last_error() || $update === null) {
+    exit_log(400, "Invalid JSON received in $content.");
 }
 
 if (! isset($update['message'])) {
-    exit("No message in $content");
+    exit_log(400, "No message in $content");
 }
 
 $text = trim($update['message']['text'] ?? '');
 if ($text === '') {
-    http_response_code(400);
-    exit('No text found');
+    exit_log(400, 'No text found');
 }
 
 $chatId = $update['message']['chat']['id'] ?? null;
 if ($chatId === null) {
-    http_response_code(400);
-    exit('No chat ID found');
+    exit_log(400, 'No chat ID found');
 }
 
 $context = [
@@ -67,10 +62,17 @@ if (! in_array($chatId, $config['TELEGRAM_ALLOWED_CHATS'])) {
         leaveChat($config, $context);
     }
 
-    exit("Chat {$chatId} ignored.");
+    exit_log(403, "Chat {$chatId} ignored.");
 }
 
 // TODO: Implement validation or authentication to verify webhook origin and prevent misuse
+// ------------------------------------ GENERAL
+function exit_log($code, $message="")
+{
+    echo $message;
+    http_response_code($code);
+    exit;
+}
 
 // ------------------------------------ TELEGRAM
 function telegramRequest($config, $method, $payload)
@@ -259,7 +261,7 @@ function handleList($config, $context, $param)
         if (! $ignoreEmpty) {
             sendTelegramMessage($config, $context, 'Keine offenen Anträge gefunden.');
         }
-        exit('No open applications found.');
+        exit_log(200, 'No open applications found.');
     }
 
     $message = '📋 *Offene Anträge* \\('.count($applications)."\\)\n\n";
@@ -286,11 +288,11 @@ function handleAccept($config, $context, $memberId)
     $acceptedGroup = $config['WEBLING_MEMBER_GROUP_ACCEPTED'];
     if ($memberId === null or $memberId === '') {
         sendTelegramMessage($config, $context, 'Nutze zum Akzeptieren: /accept <id>');
-        exit('No Member ID given.');
+        exit_log(400, 'No Member ID given.');
     }
     if (! ctype_digit($memberId)) {
         sendTelegramMessage($config, $context, "Ungültige ID: $memberId");
-        exit("Illegal ID: {$memberId}");
+        exit_log(400, "Illegal ID: {$memberId}");
     }
     sendTelegramMessage($config, $context, "Akzeptiere Mitglied {$memberId}.");
     $isMoved = pushMemberToDifferentGroup($config, $context, $memberId, $openGroup, $acceptedGroup);
@@ -312,11 +314,11 @@ function handleDecline($config, $context, $memberId)
     $declinedGroup = $config['WEBLING_MEMBER_GROUP_DECLINED'];
     if ($memberId === null or $memberId === '') {
         sendTelegramMessage($config, $context, 'Nutze zum Ablehnen: /decline <id>');
-        exit('No Member ID given.');
+        exit_log(400, 'No Member ID given.');
     }
     if (! ctype_digit($memberId)) {
         sendTelegramMessage($config, $context, "Ungültige ID: $memberId");
-        exit("Illegal ID: {$memberId}");
+        exit_log(400, "Illegal ID: {$memberId}");
     }
     sendTelegramMessage($config, $context, "Lehne Mitglied {$memberId} ab.");
     $isMoved = pushMemberToDifferentGroup($config, $context, $memberId, $openGroup, $declinedGroup);
@@ -350,8 +352,9 @@ $handlers = [
 ];
 if (isset($handlers[$command])) {
     $handlers[$command]($config, $context, $param);
+    exit();
 } else {
-    exit("Unknown command {$command}");
+    exit_log(400, "Unknown command {$command}");
 }
 
 // TODO: Implement logging for received updates and errors
