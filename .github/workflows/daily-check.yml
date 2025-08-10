@@ -14,5 +14,5 @@ jobs:
       run: |
         curl -X POST ${{ secrets.TELEGRAM_WEBHOOK_URL }} \
           -H 'Content-Type: application/json' \
-          -H "X-Telegram-Bot-Api-Secret-Token: ${{ secrets.TELGRAM_WEBHOOK_SECRET }}" \
+          -H 'X-Telegram-Bot-Api-Secret-Token: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}' \
           -d '{ "message": { "chat": { "id": "${{ vars.TELEGRAM_CHAT_ID }}" }, "text": "/list quiet" } }'
