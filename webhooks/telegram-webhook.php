@@ -41,11 +41,6 @@ if (! isset($update['message'])) {
     exit_log(400, "No message in $content");
 }
 
-$text = trim($update['message']['text'] ?? '');
-if ($text === '') {
-    exit_log(400, 'No text found');
-}
-
 $chatId = $update['message']['chat']['id'] ?? null;
 if ($chatId === null) {
     exit_log(400, 'No chat ID found');
@@ -53,7 +48,6 @@ if ($chatId === null) {
 
 $context = [
     'chatId' => $chatId,
-    'text' => $text,
 ];
 
 $allowedChats = $config['TELEGRAM_ALLOWED_CHATS'] ?? [];
@@ -66,6 +60,12 @@ if (!in_array($chatId, $allowedChats)) {
 
     exit_log(403, "Chat {$chatId} ignored.");
 }
+
+$text = trim($update['message']['text'] ?? '');
+if ($text === '') {
+    exit_log(400, 'No text found');
+}
+$context['text'] = $text;
 
 // TODO: Implement validation or authentication to verify webhook origin and prevent misuse
 // ------------------------------------ GENERAL
@@ -168,7 +168,7 @@ function getOpenApplicationIds($config)
 {
     $group = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     if ($group === null) {
-        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN not set.")
+        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN not set.");
     }
     $data = weblingRequest($config, "member?filter=%24ancestors.%24id={$group}");
 
@@ -201,7 +201,7 @@ function sendMemberMail($config, string $id)
     $smtpFrom = $config['SMTP_FROM'] ?? null;
     if (in_array(null, [$smtpHost, $smtpPort, $smtpUser, $smtpPass, $smtpFrom])){
         exit_log(500, 
-        "SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM must be defined properly.")
+        "SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and SMTP_FROM must be defined properly.");
     }
 
     $data = weblingRequest($config, "member/$id");
@@ -213,7 +213,7 @@ function sendMemberMail($config, string $id)
     $memberEMail = $prop['E-Mail'] ?? null;
 
     if ($memberEMail === null) {
-        exit_log(500, "Member {$id}, {$memberRufname}, has no email address.")
+        exit_log(500, "Member {$id}, {$memberRufname}, has no email address.");
     }
 
     $mail = new PHPMailer(true);
@@ -221,10 +221,10 @@ function sendMemberMail($config, string $id)
     try {
         $mail->isSMTP();
         $mail->Host = $smtpHost;
-        $mail->Port = $smtpPort
+        $mail->Port = $smtpPort;
         $mail->SMTPAuth = true;
         $mail->Username = $smtpUser;
-        $mail->Password = $smtpPass
+        $mail->Password = $smtpPass;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->setFrom($smtpFrom, 'Dein Verein');
         $mail->addAddress($memberEMail, "$memberVorname $memberName");
@@ -278,7 +278,7 @@ function handleList($config, $context, $param)
     $applications = getMemberInfos($config, $applicationIds);
     $openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     if ($openGroup === null) {
-        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN not defined.")
+        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN not defined.");
     }
 
     if (! $applications || count($applications) === 0) {
@@ -301,7 +301,7 @@ function handleList($config, $context, $param)
     $dt = escMDV2(date('d.m.Y H:i'));
     $message .= "🕐 Stand: {$dt}\n";
     $weblingBaseUrl = $config['WEBLING_BASE_URL'] ?? null;
-    if ($weblingBaseUrl =!= null) {
+    if ($weblingBaseUrl !== null) {
         $message .= escMDV2("👉 {$weblingBaseUrl}/admin#/members/membergroup/{$openGroup}");
     }
 
@@ -313,7 +313,7 @@ function handleAccept($config, $context, $memberId)
     $openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     $acceptedGroup = $config['WEBLING_MEMBER_GROUP_ACCEPTED'] ?? null;
     if( $openGroup === null || $acceptedGroup === null ) {
-        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN and WEBLING_MEMBER_GROUP_ACCEPTED must be configured.")
+        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN and WEBLING_MEMBER_GROUP_ACCEPTED must be configured.");
     }
     if ($memberId === null or $memberId === '') {
         sendTelegramMessage($config, $context, 'Nutze zum Akzeptieren: /accept <id>');
@@ -341,8 +341,8 @@ function handleDecline($config, $context, $memberId)
 {
     $openGroup = $config['WEBLING_MEMBER_GROUP_OPEN'] ?? null;
     $declinedGroup = $config['WEBLING_MEMBER_GROUP_DECLINED'] ?? null;
-    if( $openGroup === null || $acceptedGroup === null ) {
-        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN and WEBLING_MEMBER_GROUP_DECLINED must be configured.")
+    if( $openGroup === null || $declinedGroup === null ) {
+        exit_log(500, "WEBLING_MEMBER_GROUP_OPEN and WEBLING_MEMBER_GROUP_DECLINED must be configured.");
     }
     if ($memberId === null or $memberId === '') {
         sendTelegramMessage($config, $context, 'Nutze zum Ablehnen: /decline <id>');
