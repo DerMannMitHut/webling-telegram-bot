@@ -4,7 +4,7 @@
 
 # Check required environment variables
 if [[ -z "$SFTP_USERNAME" || -z "$SFTP_PASSWORD" || -z "$SFTP_SERVER" || -z "$REMOTE_FOLDER" ]]; then
-  echo "Error: WEBHOOK_UUID, SFTP_USERNAME, SFTP_PASSWORD, and SFTP_SERVER environment variables must be set."
+  echo "Error: SFTP_USERNAME, SFTP_PASSWORD, SFTP_SERVER, and REMOTE_FOLDER environment variables must be set."
   exit 1
 fi
 
