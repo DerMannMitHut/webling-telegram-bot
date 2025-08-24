@@ -47,6 +47,12 @@ This project provides a Telegram bot that integrates with the [Webling](https://
     and `SMTP_REPLYTO_NAME` in your configuration. Optional CC recipients can be
     defined via `SMTP_CC_EMAIL` and `SMTP_CC_NAME`.
 
+    To verify your SMTP configuration, you can send a test email:
+
+    ```bash
+    php test-smtp.php you@example.com
+    ```
+
 4. **Set Up the Webhook**
 
     Deploy `telegram-webhook.php` to your HTTPS-enabled web server and set the Telegram webhook to point to it:
