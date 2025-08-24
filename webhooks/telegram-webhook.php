@@ -270,6 +270,11 @@ function sendMemberMail($config, string $id) {
         if ($cc_email !== null && $cc_name !== null) {
             $mail->addCC($cc_email, $cc_name);
         }
+        $reply_email = $config['SMTP_REPLYTO_EMAIL'] ?? null;
+        $reply_name  = $config['SMTP_REPLYTO_NAME'] ?? '';
+        if ($reply_email !== null) {
+            $mail->addReplyTo($reply_email, $reply_name);
+        }
         $mail->Encoding = 'base64';
         $mail->Timeout  = 10;
         $mail->isHTML(false);
