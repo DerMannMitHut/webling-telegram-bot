@@ -8,8 +8,10 @@ use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
 $config = include __DIR__.'/wh_config/config.php';
- 
+
+$trace = false;
 if (PHP_SAPI === 'cli') {
+    $trace = in_array('--trace', $argv ?? [], true);
     $content = stream_get_contents(STDIN);
 } else {
     $method = $_SERVER['REQUEST_METHOD'] ?? 'N/A';
@@ -70,8 +72,15 @@ if ($text === '') {
 }
 $context['text'] = $text;
 
+function trace_log($message) {
+    if (($GLOBALS['trace'] ?? false) === true) {
+        fwrite(STDERR, "[TRACE] $message\n");
+    }
+}
+
 // ------------------------------------ GENERAL
 function exit_log($code, $message) {
+    trace_log("exit_log: $code $message");
     http_response_code($code);
     error_log($message);
     // echo($message);
@@ -79,6 +88,7 @@ function exit_log($code, $message) {
 }
 
 function httpJson(string $url, string $method='GET', ?array $body=null, array $headers=[]): array {
+    trace_log("HTTP $method $url");
     $ch = curl_init($url);
     $h = array_merge(['Accept: application/json'], $headers);
 
@@ -103,6 +113,7 @@ function httpJson(string $url, string $method='GET', ?array $body=null, array $h
     $response = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err  = curl_error($ch);
+    trace_log("HTTP $method $url -> $code");
     curl_close($ch);
 
     if ($response === false) {
@@ -130,6 +141,7 @@ function telegramRequest($config, $method, $payload) {
     }
     $url = "https://api.telegram.org/bot{$telegramBotToken}/$method";
     $attempts = 0;
+    trace_log("telegramRequest $method");
     while (true) {
         [$code, $data] = httpJson($url, 'POST', $payload);
         if ($code>=200 && $code<300){
@@ -147,6 +159,7 @@ function telegramRequest($config, $method, $payload) {
 }
 
 function sendTelegramMessage($config, $context, $message, $markdown = false) {
+    trace_log('sendTelegramMessage: '.substr($message, 0, 200));
     $payload = [
         'chat_id' => $context['chatId'],
         'text' => $message,
@@ -172,7 +185,7 @@ function weblingRequest($config, $path, $method = 'GET', $body = null) {
     }
     $url = rtrim($baseUrl, '/')."/api/1/$path";
     $headers = ["apikey: {$apiKey}"];
-
+    trace_log("weblingRequest $method $url");
     $attempt = 0;
     while (true) {
         [$code, $data] = httpJson($url, $method, $body, $headers);
@@ -417,6 +430,7 @@ function handleHelp($config, $context, $param) {
 $commandRaw = strtok($text, ' ');
 $command = strtolower(preg_replace('~/@[\w_]+$~', '', $commandRaw));
 $param   = trim(substr($text, strlen($commandRaw)));
+trace_log("command: $command param: $param");
 
 $handlers = [
     '/list' => 'handleList',
