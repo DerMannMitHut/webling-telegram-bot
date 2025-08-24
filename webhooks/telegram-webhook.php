@@ -275,7 +275,7 @@ function sendMemberMail($config, string $id) {
         $mail->SMTPAuth = true;
         $mail->Username = $smtpUser;
         $mail->Password = $smtpPass;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
         $mail->setFrom($smtpFrom, 'Dein Verein');
         $mail->addAddress($memberEMail, "$memberVorname $memberName");
         $cc_email = $config['SMTP_CC_EMAIL'] ?? null;

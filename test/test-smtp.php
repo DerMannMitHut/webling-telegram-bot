@@ -1,16 +1,16 @@
 <?php
-require __DIR__.'/webhooks/phpmailer/src/Exception.php';
-require __DIR__.'/webhooks/phpmailer/src/PHPMailer.php';
-require __DIR__.'/webhooks/phpmailer/src/SMTP.php';
+require __DIR__.'/../webhooks/phpmailer/src/Exception.php';
+require __DIR__.'/../webhooks/phpmailer/src/PHPMailer.php';
+require __DIR__.'/../webhooks/phpmailer/src/SMTP.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-$config = include __DIR__.'/webhooks/wh_config/config.php';
+$config = include __DIR__.'/../webhooks/wh_config/config.php';
 
 $to = $argv[1] ?? null;
 if ($to === null) {
-    fwrite(STDERR, "Usage: php test-smtp.php <recipient-email>\n");
+    fwrite(STDERR, "Usage: php test/test-smtp.php <recipient-email>\n");
     exit(1);
 }
 
@@ -34,7 +34,7 @@ try {
     $mail->SMTPAuth   = true;
     $mail->Username   = $smtpUser;
     $mail->Password   = $smtpPass;
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
     $mail->setFrom($smtpFrom, 'SMTP Test');
 
     if (!$mail->smtpConnect()) {
