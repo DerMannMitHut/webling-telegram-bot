@@ -43,6 +43,10 @@ This project provides a Telegram bot that integrates with the [Webling](https://
     ];
     ```
 
+    To specify a Reply-To address for outgoing emails, set `SMTP_REPLYTO_EMAIL`
+    and `SMTP_REPLYTO_NAME` in your configuration. Optional CC recipients can be
+    defined via `SMTP_CC_EMAIL` and `SMTP_CC_NAME`.
+
 4. **Set Up the Webhook**
 
     Deploy `telegram-webhook.php` to your HTTPS-enabled web server and set the Telegram webhook to point to it:
